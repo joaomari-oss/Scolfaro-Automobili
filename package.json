@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "concurrently -n API,UI -c cyan,yellow \"npm run dev --prefix server\" \"vite\"",
     "dev:ui": "vite",
+    "dev:frontend": "vite",
     "dev:api": "npm run dev --prefix server",
+    "dev:backend": "npm run dev --prefix server",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -26,6 +28,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
+    "babel-plugin-react-compiler": "^1.0.0",
     "concurrently": "^9.2.1",
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.0.1",

@@ -9,9 +9,10 @@ interface Props {
   veiculos: Veiculo[];
   theme: 'dark' | 'light';
   mode?: 'single' | 'grouped';
+  colorMap?: Record<string, string>;
 }
 
-export default function BarrasChart({ veiculos, theme, mode = 'single' }: Props) {
+export default function BarrasChart({ veiculos, theme, mode = 'single', colorMap }: Props) {
   const isDark = theme === 'dark';
   const COLORS = isDark ? COLORS_DARK : COLORS_LIGHT;
   const tickColor   = isDark ? '#5A5A5A' : '#A3A3A3';
@@ -19,6 +20,7 @@ export default function BarrasChart({ veiculos, theme, mode = 'single' }: Props)
   const blueColor   = isDark ? '#3B82F6' : '#2563EB';
 
   const data = veiculos.map(v => ({
+    id: v.id,
     nome: v.modelo.length > 16 ? v.modelo.slice(0, 16) + '…' : v.modelo,
     full: v.modelo,
     Mercado: v.valorMercado,
@@ -60,8 +62,8 @@ export default function BarrasChart({ veiculos, theme, mode = 'single' }: Props)
         <Legend wrapperStyle={{ fontSize: 12, fontFamily: 'DM Sans, sans-serif', paddingTop: 8 }} />
         {mode === 'single' ? (
           <Bar dataKey="Mercado" radius={[6, 6, 0, 0]}>
-            {data.map((_, i) => (
-              <Cell key={i} fill={COLORS[i % COLORS.length]} />
+            {data.map((item, i) => (
+              <Cell key={i} fill={colorMap?.[item.id] ?? COLORS[i % COLORS.length]} />
             ))}
           </Bar>
         ) : (

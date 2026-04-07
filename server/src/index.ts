@@ -7,13 +7,62 @@ import Anthropic from '@anthropic-ai/sdk';
 
 const app = express();
 const PORT = process.env.PORT ?? 3001;
+const hasAnthropicKey = Boolean(process.env.ANTHROPIC_API_KEY);
 
-if (!process.env.ANTHROPIC_API_KEY) {
-  console.error('❌ ANTHROPIC_API_KEY não definida no .env');
-  process.exit(1);
+if (!hasAnthropicKey) {
+  console.warn('⚠️ ANTHROPIC_API_KEY não definida. API iniciará em modo de estimativa local.');
 }
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const anthropic = hasAnthropicKey
+  ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  : null;
+
+const fallbackBaseByMarca: Record<string, number> = {
+  ferrari: 2_100_000,
+  lamborghini: 2_600_000,
+  porsche: 950_000,
+  mclaren: 2_300_000,
+  maserati: 780_000,
+  'land rover': 650_000,
+  'range rover': 900_000,
+  mercedes: 380_000,
+  bmw: 320_000,
+  audi: 290_000,
+  volvo: 260_000,
+  toyota: 180_000,
+  honda: 160_000,
+  jeep: 210_000,
+  volkswagen: 135_000,
+  chevrolet: 125_000,
+  fiat: 95_000,
+};
+
+function estimarValoresLocalmente(params: BuscarValoresBody): IAValores {
+  const { marca, modelo, ano, quilometragem, combustivel } = params;
+  const anoAtual = new Date().getFullYear();
+  const idade = Math.max(0, anoAtual - ano);
+  const km = Number.isFinite(quilometragem) ? quilometragem : 0;
+  const marcaNormalizada = marca.toLowerCase();
+
+  const baseMarca =
+    Object.entries(fallbackBaseByMarca).find(([key]) => marcaNormalizada.includes(key))?.[1] ?? 120_000;
+
+  const depreciacaoAno = Math.max(0.4, 1 - idade * 0.05);
+  const ajusteKm = km < 30_000 ? 1.05 : km < 80_000 ? 1 : km < 150_000 ? 0.93 : 0.85;
+  const ajusteCombustivel = combustivel.toLowerCase().includes('diesel') ? 1.03 : 1;
+
+  const valorFipe = Math.min(50_000_000, Math.max(5_000, Math.round(baseMarca * depreciacaoAno)));
+  const valorMercado = Math.min(
+    50_000_000,
+    Math.max(5_000, Math.round(valorFipe * ajusteKm * ajusteCombustivel * 1.04))
+  );
+
+  return {
+    valorMercado,
+    valorFipe,
+    observacao: `Estimativa local de ${marca} ${modelo} baseada em ano e quilometragem.`,
+  };
+}
 
 // CORS: aceita apenas o frontend local (dev e preview)
 app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:4173'] }));
@@ -58,6 +107,11 @@ app.post('/api/ia/buscar-valores', async (req: Request, res: Response) => {
     quilometragem < 80_000 ? 'média (30–80 mil km)' :
     quilometragem < 150_000 ? 'alta (80–150 mil km)' :
     'muito alta (> 150 mil km)';
+
+  if (!anthropic) {
+    res.json(estimarValoresLocalmente({ modelo, marca, ano, quilometragem, combustivel }));
+    return;
+  }
 
   try {
     const message = await anthropic.messages.create({
@@ -121,6 +175,86 @@ Retorne exatamente neste formato:
 // ─── Healthcheck ──────────────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// ─── FIPE API ─────────────────────────────────────────────────────────────────
+const FIPE_BASE = 'https://parallelum.com.br/fipe/api/v1';
+
+interface FipeMarca  { codigo: string; nome: string }
+interface FipeModelo { codigo: string; nome: string }
+interface FipeAno    { codigo: string; nome: string }
+
+function normStr(s: string): string {
+  return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+async function fetchJson<T>(url: string): Promise<T> {
+  const headers: Record<string, string> = { accept: 'application/json' };
+  if (process.env.FIPE_API_TOKEN) headers['X-Subscription-Token'] = process.env.FIPE_API_TOKEN;
+  const res = await fetch(url, { headers });
+  if (!res.ok) throw new Error(`FIPE API error ${res.status}: ${url}`);
+  return res.json() as Promise<T>;
+}
+
+interface FipeSearchResult {
+  found: boolean;
+  data: Record<string, unknown> | null;
+  error?: string;
+}
+
+async function searchFipeByVehicle(marca: string, modelo: string, ano: number): Promise<FipeSearchResult> {
+  try {
+    const marcas = await fetchJson<FipeMarca[]>(`${FIPE_BASE}/carros/marcas`);
+
+    const marcaNorm = normStr(marca);
+    const foundBrand = marcas.find(b =>
+      normStr(b.nome).includes(marcaNorm) || marcaNorm.includes(normStr(b.nome))
+    );
+    if (!foundBrand) return { found: false, data: null, error: `Marca "${marca}" não encontrada na tabela FIPE` };
+
+    const modelosData = await fetchJson<{ modelos: FipeModelo[] }>(`${FIPE_BASE}/carros/marcas/${foundBrand.codigo}/modelos`);
+    const modelos = modelosData.modelos ?? [];
+
+    const modeloNorm = normStr(modelo);
+    const firstWord  = modeloNorm.split(' ')[0];
+
+    let foundModel = modelos.find(m => normStr(m.nome) === modeloNorm);
+    if (!foundModel) foundModel = modelos.find(m => normStr(m.nome).includes(firstWord));
+    if (!foundModel) foundModel = modelos.find(m => firstWord.includes(normStr(m.nome).split(' ')[0]));
+    if (!foundModel) return { found: false, data: null, error: `Modelo "${modelo}" não encontrado para a marca "${marca}"` };
+
+    const anos = await fetchJson<FipeAno[]>(`${FIPE_BASE}/carros/marcas/${foundBrand.codigo}/modelos/${foundModel.codigo}/anos`);
+    if (!anos.length) return { found: false, data: null, error: 'Nenhum ano encontrado para este modelo' };
+
+    const sorted = [...anos].sort((a, b) => {
+      const ya = parseInt(a.nome);
+      const yb = parseInt(b.nome);
+      return Math.abs(ya - ano) - Math.abs(yb - ano);
+    });
+
+    const fipeData = await fetchJson<Record<string, unknown>>(
+      `${FIPE_BASE}/carros/marcas/${foundBrand.codigo}/modelos/${foundModel.codigo}/anos/${sorted[0].codigo}`
+    );
+
+    return { found: true, data: fipeData };
+  } catch (err) {
+    return { found: false, data: null, error: `Erro ao consultar FIPE: ${String(err)}` };
+  }
+}
+
+// POST /api/fipe/search — body: { marca, modelo, ano }
+app.post('/api/fipe/search', async (req: Request, res: Response) => {
+  const { marca, modelo, ano } = req.body as { marca?: string; modelo?: string; ano?: number };
+  if (!marca || !modelo || !ano) {
+    res.status(400).json({ success: false, error: 'marca, modelo e ano são obrigatórios' });
+    return;
+  }
+  try {
+    const result = await searchFipeByVehicle(marca, modelo, Number(ano));
+    res.json({ success: true, data: result });
+  } catch (err) {
+    res.status(500).json({ success: false, error: String(err) });
+  }
 });
 
 app.listen(PORT, () => {

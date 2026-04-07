@@ -9,14 +9,16 @@ const COLORS_LIGHT = ['#1D4ED8', '#0891B2', '#059669', '#7C3AED', '#DC2626', '#D
 interface Props {
   veiculos: Veiculo[];
   theme: 'dark' | 'light';
+  colorMap?: Record<string, string>;
 }
 
-export default function DonutChart({ veiculos, theme }: Props) {
+export default function DonutChart({ veiculos, theme, colorMap }: Props) {
   const isDark = theme === 'dark';
   const COLORS = isDark ? COLORS_DARK : COLORS_LIGHT;
   const total = veiculos.reduce((s, v) => s + v.valorMercado, 0);
 
   const data = veiculos.map(v => ({
+    id: v.id,
     name: v.modelo,
     value: v.valorMercado,
     pct: total > 0 ? ((v.valorMercado / total) * 100).toFixed(1) : '0',
@@ -48,8 +50,8 @@ export default function DonutChart({ veiculos, theme }: Props) {
           strokeWidth={2}
           stroke={isDark ? '#111111' : '#FAFAFA'}
         >
-          {data.map((_, i) => (
-            <Cell key={i} fill={COLORS[i % COLORS.length]} />
+          {data.map((item, i) => (
+            <Cell key={i} fill={colorMap?.[item.id] ?? COLORS[i % COLORS.length]} />
           ))}
         </Pie>
         <Tooltip

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Sun, Moon, Search } from 'lucide-react';
 import type { Veiculo } from '../../types/veiculo';
+import BackendStatus from './BackendStatus';
 
 interface HeaderProps {
   theme: 'dark' | 'light';
@@ -102,11 +103,13 @@ export default function Header({ theme, toggleTheme, veiculos, onSelectVeiculo }
                 value={busca}
                 onChange={e => { setBusca(e.target.value); setShowResults(true); }}
                 onFocus={() => { setShowResults(true); setSearchFocused(true); }}
-                className="sa-input pl-9 pr-3 py-2 text-sm"
+                className="sa-input py-2 text-sm"
                 style={{
                   width: searchFocused ? '300px' : '220px',
                   transition: 'width 300ms ease, border-color 150ms ease, box-shadow 150ms ease',
                   borderRadius: 'var(--radius-full)',
+                  paddingLeft: '36px',
+                  paddingRight: '12px',
                 }}
               />
               {showResults && busca.trim() && (
@@ -162,6 +165,9 @@ export default function Header({ theme, toggleTheme, veiculos, onSelectVeiculo }
                 </div>
               )}
             </div>
+
+            {/* Backend status indicator */}
+            <BackendStatus />
 
             {/* Theme toggle */}
             <button

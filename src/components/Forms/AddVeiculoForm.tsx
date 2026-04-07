@@ -1,9 +1,9 @@
 import { useState, useRef } from 'react';
-import { Upload, X, Bot, Save, Camera } from 'lucide-react';
+import { Upload, X, Save, Camera } from 'lucide-react';
 import type { Veiculo, TipoVeiculo, FichaTecnica } from '../../types/veiculo';
 import { generateId } from '../../utils/formatters';
-import { useIA } from '../../hooks/useIA';
 import { showToast } from '../Layout/Toast';
+import AIValueFetcher from '../vehicles/AIValueFetcher';
 
 interface Props {
   theme: 'dark' | 'light';
@@ -40,7 +40,6 @@ const Field = ({ label, children, span2 = false }: { label: string; children: Re
 );
 
 export default function AddVeiculoForm({ marcasExistentes, onSave }: Props) {
-  const { buscarValores, loading: iaLoading } = useIA();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [modelo,       setModelo]       = useState('');
@@ -86,23 +85,6 @@ export default function AddVeiculoForm({ marcasExistentes, onSave }: Props) {
       reader.readAsDataURL(file);
     });
     e.target.value = '';
-  };
-
-  const handleBuscarIA = async () => {
-    if (!modelo || !marca || !ano) {
-      showToast('error', 'Preencha modelo, marca e ano primeiro.');
-      return;
-    }
-    try {
-      const result = await buscarValores({ modelo, marca, ano: Number(ano), quilometragem: Number(quilometragem) || 0, combustivel });
-      if (result) {
-        setValorMercado(result.valorMercado);
-        setValorFipe(result.valorFipe);
-        showToast('success', 'Valores preenchidos pela IA!');
-      }
-    } catch (err: unknown) {
-      showToast('error', err instanceof Error ? err.message : 'Erro ao buscar valores');
-    }
   };
 
   const handleSave = () => {
@@ -216,10 +198,15 @@ export default function AddVeiculoForm({ marcasExistentes, onSave }: Props) {
               placeholder="Ex: 1980000" className="sa-input font-data" />
           </Field>
         </div>
-        <button onClick={handleBuscarIA} disabled={iaLoading} className="sa-btn-ghost">
-          <Bot className={`w-4 h-4 ${iaLoading ? 'animate-spin' : ''}`} />
-          {iaLoading ? 'Buscando via IA...' : 'Buscar valores via IA'}
-        </button>
+        <AIValueFetcher
+          marca={marca}
+          modelo={modelo}
+          ano={ano}
+          quilometragem={quilometragem}
+          combustivel={combustivel}
+          onMarketValueFound={(value) => setValorMercado(value)}
+          onFipeFound={(value) => setValorFipe(value)}
+        />
       </section>
 
       {/* Seção 3 — Ficha Técnica */}

@@ -23,7 +23,7 @@ interface Props {
 
 type SortKey = 'modelo' | 'ano' | 'km' | 'mercado' | 'fipe' | 'diffR' | 'diffP' | 'data';
 
-export default function Valores({ veiculos, theme, onAtualizarValores, onUpdateVeiculo }: Props) {
+export default function Valores({ veiculos, theme, onAtualizarValores, onUpdateVeiculo: _onUpdateVeiculo }: Props) {
 
   // ── Existing state ────────────────────────────────────────────────────────
   const [atualizando, setAtualizando] = useState(false);

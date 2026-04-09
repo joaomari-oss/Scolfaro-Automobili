@@ -1,27 +1,26 @@
 import { useState, useRef } from 'react';
-import { Upload, X, Save, Camera } from 'lucide-react';
-import type { Veiculo, TipoVeiculo, FichaTecnica } from '../../types/veiculo';
-import { generateId } from '../../utils/formatters';
+import { Upload, X, Camera } from 'lucide-react';
+import type { Veiculo, TipoVeiculo, FichaTecnica, VeiculoEditavel } from '../../types/veiculo';
 import { showToast } from '../Layout/Toast';
 import AIValueFetcher from '../vehicles/AIValueFetcher';
 
 interface Props {
-  theme: 'dark' | 'light';
-  marcasExistentes: string[];
-  onSave: (v: Veiculo) => void;
+  veiculo: Veiculo;
+  onSalvar: (dados: VeiculoEditavel) => void;
+  onCancelar: () => void;
 }
 
 const tiposOpcoes: { value: TipoVeiculo; label: string }[] = [
-  { value: 'sedan',      label: 'Sedan' },
-  { value: 'suv',        label: 'SUV / 4x4' },
-  { value: 'esportivo',  label: 'Esportivo' },
-  { value: 'hatch',      label: 'Hatch' },
-  { value: 'picape',     label: 'Picape' },
-  { value: 'conversivel',label: 'Conversível' },
-  { value: 'moto',       label: 'Moto' },
-  { value: 'van',        label: 'Van / Utilitário' },
-  { value: 'utilitario', label: 'Utilitário' },
-  { value: 'classico',   label: 'Clássico' },
+  { value: 'sedan',       label: 'Sedan' },
+  { value: 'suv',         label: 'SUV / 4x4' },
+  { value: 'esportivo',   label: 'Esportivo' },
+  { value: 'hatch',       label: 'Hatch' },
+  { value: 'picape',      label: 'Picape' },
+  { value: 'conversivel', label: 'Conversível' },
+  { value: 'moto',        label: 'Moto' },
+  { value: 'van',         label: 'Van / Utilitário' },
+  { value: 'utilitario',  label: 'Utilitário' },
+  { value: 'classico',    label: 'Clássico' },
 ];
 
 const combustivelOpcoes = ['Gasolina', 'Etanol', 'Flex', 'Diesel', 'Elétrico', 'Híbrido'];
@@ -39,35 +38,37 @@ const Field = ({ label, children, span2 = false }: { label: string; children: Re
   </div>
 );
 
-export default function AddVeiculoForm({ marcasExistentes, onSave }: Props) {
+export default function EditarVeiculoForm({ veiculo, onSalvar, onCancelar }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [modelo,       setModelo]       = useState('');
-  const [marca,        setMarca]        = useState('');
-  const [ano,          setAno]          = useState<number | ''>('');
-  const [placa,        setPlaca]        = useState('');
-  const [cor,          setCor]          = useState('');
-  const [tipo,         setTipo]         = useState<TipoVeiculo>('sedan');
-  const [combustivel,  setCombustivel]  = useState('Gasolina');
-  const [cambio,       setCambio]       = useState('Automático');
-  const [quilometragem,setQuilometragem]= useState<number | ''>(0);
-  const [notas,        setNotas]        = useState('');
-  const [valorMercado, setValorMercado] = useState<number | ''>('');
-  const [valorFipe,    setValorFipe]    = useState<number | ''>('');
-  const [motor,        setMotor]        = useState('');
-  const [potencia,     setPotencia]     = useState('');
-  const [torque,       setTorque]       = useState('');
-  const [tracao,       setTracao]       = useState('');
-  const [aceleracao,   setAceleracao]   = useState('');
-  const [velocidadeMaxima, setVelocidadeMaxima] = useState('');
-  const [pesoKg,       setPesoKg]       = useState<number | ''>('');
-  const [capacidadeTanque, setCapacidadeTanque] = useState<number | ''>('');
-  const [consumoUrbano, setConsumoUrbano] = useState('');
-  const [consumoRodovia, setConsumoRodovia] = useState('');
-  const [dimensoes,    setDimensoes]    = useState('');
-  const [capacidadePassageiros, setCapacidadePassageiros] = useState<number | ''>('');
-  const [outros,       setOutros]       = useState('');
-  const [fotos,        setFotos]        = useState<string[]>([]);
+  const ft = veiculo.fichatecnica;
+
+  const [modelo,       setModelo]       = useState(veiculo.modelo);
+  const [marca,        setMarca]        = useState(veiculo.marca);
+  const [ano,          setAno]          = useState<number | ''>(veiculo.ano);
+  const [placa,        setPlaca]        = useState(veiculo.placa);
+  const [cor,          setCor]          = useState(veiculo.cor);
+  const [tipo,         setTipo]         = useState<TipoVeiculo>(veiculo.tipo);
+  const [combustivel,  setCombustivel]  = useState(veiculo.combustivel);
+  const [cambio,       setCambio]       = useState(veiculo.cambio);
+  const [quilometragem,setQuilometragem]= useState<number | ''>(veiculo.quilometragem);
+  const [notas,        setNotas]        = useState(veiculo.notas ?? '');
+  const [valorMercado, setValorMercado] = useState<number | ''>(veiculo.valorMercado);
+  const [valorFipe,    setValorFipe]    = useState<number | ''>(veiculo.valorFipe);
+  const [motor,        setMotor]        = useState(ft.motor);
+  const [potencia,     setPotencia]     = useState(ft.potencia);
+  const [torque,       setTorque]       = useState(ft.torque);
+  const [tracao,       setTracao]       = useState(ft.tracao);
+  const [aceleracao,   setAceleracao]   = useState(ft.aceleracao);
+  const [velocidadeMaxima, setVelocidadeMaxima] = useState(ft.velocidadeMaxima);
+  const [pesoKg,       setPesoKg]       = useState<number | ''>(ft.pesoKg || '');
+  const [capacidadeTanque, setCapacidadeTanque] = useState<number | ''>(ft.capacidadeTanque || '');
+  const [consumoUrbano, setConsumoUrbano] = useState(ft.consumoUrbano);
+  const [consumoRodovia, setConsumoRodovia] = useState(ft.consumoRodovia);
+  const [dimensoes,    setDimensoes]    = useState(ft.dimensoes);
+  const [capacidadePassageiros, setCapacidadePassageiros] = useState<number | ''>(ft.capacidadePassageiros || '');
+  const [outros,       setOutros]       = useState(ft.outros ?? '');
+  const [fotos,        setFotos]        = useState<string[]>(veiculo.fotos);
 
   const handlePlaca = (v: string) => {
     const cleaned = v.toUpperCase().replace(/[^A-Z0-9-]/g, '');
@@ -87,14 +88,13 @@ export default function AddVeiculoForm({ marcasExistentes, onSave }: Props) {
     e.target.value = '';
   };
 
-  const handleSave = () => {
+  const handleSalvar = () => {
     if (!modelo.trim()) { showToast('error', 'Modelo é obrigatório'); return; }
     if (!ano)           { showToast('error', 'Ano é obrigatório'); return; }
     if (!valorMercado)  { showToast('error', 'Valor de Mercado é obrigatório'); return; }
     if (!valorFipe)     { showToast('error', 'Valor FIPE é obrigatório'); return; }
 
     const tipoItem = tiposOpcoes.find(t => t.value === tipo);
-    const hoje = new Date().toISOString().split('T')[0];
 
     const fichatecnica: FichaTecnica = {
       motor, potencia, torque, tracao, aceleracao, velocidadeMaxima,
@@ -105,8 +105,7 @@ export default function AddVeiculoForm({ marcasExistentes, onSave }: Props) {
       outros: outros || undefined,
     };
 
-    const veiculo: Veiculo = {
-      id: generateId(),
+    const dados: VeiculoEditavel = {
       modelo: modelo.trim(),
       marca: marca.trim() || 'Sem marca',
       ano: Number(ano),
@@ -118,68 +117,62 @@ export default function AddVeiculoForm({ marcasExistentes, onSave }: Props) {
       valorFipe: Number(valorFipe),
       fichatecnica,
       fotos,
-      favorito: false,
-      historicovalorizacao: [{ data: hoje, valorMercado: Number(valorMercado), valorFipe: Number(valorFipe), fonte: 'Manual' }],
-      ultimaAtualizacao: hoje,
       cor, combustivel, cambio,
       notas: notas || undefined,
-      gastos: [],
+      gastos: veiculo.gastos ?? [],
     };
 
-    onSave(veiculo);
+    onSalvar(dados);
   };
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
 
       {/* Seção 1 — Informações Básicas */}
       <section>
         <SectionTitle>Informações Básicas</SectionTitle>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Modelo *">
-            <input type="text" value={modelo} onChange={e => setModelo(e.target.value)}
+            <input type="text" defaultValue={modelo} onChange={e => setModelo(e.target.value)}
               placeholder="Ex: Ferrari 488 GTB" className="sa-input" />
           </Field>
           <Field label="Marca">
-            <input type="text" value={marca} onChange={e => setMarca(e.target.value)}
-              list="marcas-list" placeholder="Ex: Ferrari" className="sa-input" />
-            <datalist id="marcas-list">
-              {marcasExistentes.map(m => <option key={m} value={m} />)}
-            </datalist>
+            <input type="text" defaultValue={marca} onChange={e => setMarca(e.target.value)}
+              placeholder="Ex: Ferrari" className="sa-input" />
           </Field>
           <Field label="Ano *">
-            <input type="number" value={ano} onChange={e => setAno(e.target.value ? Number(e.target.value) : '')}
+            <input type="number" defaultValue={ano} onChange={e => setAno(e.target.value ? Number(e.target.value) : '')}
               placeholder="2024" className="sa-input" />
           </Field>
           <Field label="Placa">
-            <input type="text" value={placa} onChange={e => handlePlaca(e.target.value)}
+            <input type="text" defaultValue={placa} onChange={e => handlePlaca(e.target.value)}
               placeholder="ABC-1234" className="sa-input font-data" />
           </Field>
           <Field label="Cor">
-            <input type="text" value={cor} onChange={e => setCor(e.target.value)}
+            <input type="text" defaultValue={cor} onChange={e => setCor(e.target.value)}
               placeholder="Ex: Rosso Corsa" className="sa-input" />
           </Field>
           <Field label="Tipo / Carroceria">
-            <select value={tipo} onChange={e => setTipo(e.target.value as TipoVeiculo)} className="sa-select">
+            <select defaultValue={tipo} onChange={e => setTipo(e.target.value as TipoVeiculo)} className="sa-select">
               {tiposOpcoes.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </Field>
           <Field label="Combustível">
-            <select value={combustivel} onChange={e => setCombustivel(e.target.value)} className="sa-select">
+            <select defaultValue={combustivel} onChange={e => setCombustivel(e.target.value)} className="sa-select">
               {combustivelOpcoes.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </Field>
           <Field label="Câmbio">
-            <select value={cambio} onChange={e => setCambio(e.target.value)} className="sa-select">
+            <select defaultValue={cambio} onChange={e => setCambio(e.target.value)} className="sa-select">
               {cambioOpcoes.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </Field>
           <Field label="Quilometragem (km)">
-            <input type="number" value={quilometragem} onChange={e => setQuilometragem(e.target.value ? Number(e.target.value) : '')}
+            <input type="number" defaultValue={quilometragem} onChange={e => setQuilometragem(e.target.value ? Number(e.target.value) : '')}
               placeholder="0" className="sa-input font-data" />
           </Field>
           <Field label="Notas" span2>
-            <textarea value={notas} onChange={e => setNotas(e.target.value)}
+            <textarea defaultValue={notas} onChange={e => setNotas(e.target.value)}
               placeholder="Observações sobre o veículo..." rows={2}
               className="sa-input resize-none" style={{ height: 'auto' }} />
           </Field>
@@ -191,11 +184,11 @@ export default function AddVeiculoForm({ marcasExistentes, onSave }: Props) {
         <SectionTitle>Valores</SectionTitle>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <Field label="Valor de Mercado (R$) *">
-            <input type="number" value={valorMercado} onChange={e => setValorMercado(e.target.value ? Number(e.target.value) : '')}
+            <input type="number" defaultValue={valorMercado} onChange={e => setValorMercado(e.target.value ? Number(e.target.value) : '')}
               placeholder="Ex: 2100000" className="sa-input font-data" />
           </Field>
           <Field label="Valor FIPE (R$) *">
-            <input type="number" value={valorFipe} onChange={e => setValorFipe(e.target.value ? Number(e.target.value) : '')}
+            <input type="number" defaultValue={valorFipe} onChange={e => setValorFipe(e.target.value ? Number(e.target.value) : '')}
               placeholder="Ex: 1980000" className="sa-input font-data" />
           </Field>
         </div>
@@ -215,46 +208,46 @@ export default function AddVeiculoForm({ marcasExistentes, onSave }: Props) {
         <SectionTitle>Ficha Técnica</SectionTitle>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Motor">
-            <input type="text" value={motor} onChange={e => setMotor(e.target.value)} placeholder="Ex: 3.9L V8 Twin-Turbo" className="sa-input" />
+            <input type="text" defaultValue={motor} onChange={e => setMotor(e.target.value)} placeholder="Ex: 3.9L V8 Twin-Turbo" className="sa-input" />
           </Field>
           <Field label="Potência">
-            <input type="text" value={potencia} onChange={e => setPotencia(e.target.value)} placeholder="Ex: 670 cv" className="sa-input" />
+            <input type="text" defaultValue={potencia} onChange={e => setPotencia(e.target.value)} placeholder="Ex: 670 cv" className="sa-input" />
           </Field>
           <Field label="Torque">
-            <input type="text" value={torque} onChange={e => setTorque(e.target.value)} placeholder="Ex: 76 kgfm" className="sa-input" />
+            <input type="text" defaultValue={torque} onChange={e => setTorque(e.target.value)} placeholder="Ex: 76 kgfm" className="sa-input" />
           </Field>
           <Field label="Tração">
-            <select value={tracao} onChange={e => setTracao(e.target.value)} className="sa-select">
+            <select defaultValue={tracao} onChange={e => setTracao(e.target.value)} className="sa-select">
               <option value="">Selecione</option>
               {tracaoOpcoes.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           </Field>
           <Field label="Aceleração 0–100 km/h">
-            <input type="text" value={aceleracao} onChange={e => setAceleracao(e.target.value)} placeholder="Ex: 3,0s" className="sa-input" />
+            <input type="text" defaultValue={aceleracao} onChange={e => setAceleracao(e.target.value)} placeholder="Ex: 3,0s" className="sa-input" />
           </Field>
           <Field label="Velocidade Máxima">
-            <input type="text" value={velocidadeMaxima} onChange={e => setVelocidadeMaxima(e.target.value)} placeholder="Ex: 330 km/h" className="sa-input" />
+            <input type="text" defaultValue={velocidadeMaxima} onChange={e => setVelocidadeMaxima(e.target.value)} placeholder="Ex: 330 km/h" className="sa-input" />
           </Field>
           <Field label="Peso (kg)">
-            <input type="number" value={pesoKg} onChange={e => setPesoKg(e.target.value ? Number(e.target.value) : '')} placeholder="Ex: 1475" className="sa-input font-data" />
+            <input type="number" defaultValue={pesoKg} onChange={e => setPesoKg(e.target.value ? Number(e.target.value) : '')} placeholder="Ex: 1475" className="sa-input font-data" />
           </Field>
           <Field label="Tanque (litros)">
-            <input type="number" value={capacidadeTanque} onChange={e => setCapacidadeTanque(e.target.value ? Number(e.target.value) : '')} placeholder="Ex: 78" className="sa-input font-data" />
+            <input type="number" defaultValue={capacidadeTanque} onChange={e => setCapacidadeTanque(e.target.value ? Number(e.target.value) : '')} placeholder="Ex: 78" className="sa-input font-data" />
           </Field>
           <Field label="Consumo Urbano">
-            <input type="text" value={consumoUrbano} onChange={e => setConsumoUrbano(e.target.value)} placeholder="Ex: 5 km/l" className="sa-input" />
+            <input type="text" defaultValue={consumoUrbano} onChange={e => setConsumoUrbano(e.target.value)} placeholder="Ex: 5 km/l" className="sa-input" />
           </Field>
           <Field label="Consumo Rodoviário">
-            <input type="text" value={consumoRodovia} onChange={e => setConsumoRodovia(e.target.value)} placeholder="Ex: 8 km/l" className="sa-input" />
+            <input type="text" defaultValue={consumoRodovia} onChange={e => setConsumoRodovia(e.target.value)} placeholder="Ex: 8 km/l" className="sa-input" />
           </Field>
           <Field label="Dimensões (mm)">
-            <input type="text" value={dimensoes} onChange={e => setDimensoes(e.target.value)} placeholder="Ex: 4.568 x 1.952 x 1.213" className="sa-input" />
+            <input type="text" defaultValue={dimensoes} onChange={e => setDimensoes(e.target.value)} placeholder="Ex: 4.568 x 1.952 x 1.213" className="sa-input" />
           </Field>
           <Field label="Nº de Passageiros">
-            <input type="number" value={capacidadePassageiros} onChange={e => setCapacidadePassageiros(e.target.value ? Number(e.target.value) : '')} placeholder="Ex: 2" className="sa-input font-data" />
+            <input type="number" defaultValue={capacidadePassageiros} onChange={e => setCapacidadePassageiros(e.target.value ? Number(e.target.value) : '')} placeholder="Ex: 2" className="sa-input font-data" />
           </Field>
           <Field label="Outros" span2>
-            <textarea value={outros} onChange={e => setOutros(e.target.value)} placeholder="Informações adicionais..." rows={2}
+            <textarea defaultValue={outros} onChange={e => setOutros(e.target.value)} placeholder="Informações adicionais..." rows={2}
               className="sa-input resize-none" style={{ height: 'auto' }} />
           </Field>
         </div>
@@ -277,7 +270,7 @@ export default function AddVeiculoForm({ marcasExistentes, onSave }: Props) {
           >
             <Upload className="w-8 h-8 mx-auto mb-2" style={{ color: 'var(--text-muted)' }} />
             <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
-              Arraste fotos ou clique para selecionar
+              Clique para adicionar fotos
             </p>
             <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
               JPEG, PNG, WebP — máx. 10 fotos
@@ -322,11 +315,13 @@ export default function AddVeiculoForm({ marcasExistentes, onSave }: Props) {
         )}
       </section>
 
-      {/* Save */}
-      <div className="pt-2 flex justify-end">
-        <button onClick={handleSave} className="sa-btn-primary px-10 py-3 text-base">
-          <Save className="w-5 h-5" />
-          Salvar Veículo
+      {/* Botões */}
+      <div className="flex gap-3 pt-2">
+        <button onClick={handleSalvar} className="sa-btn-primary flex-1">
+          ✅ Salvar Alterações
+        </button>
+        <button onClick={onCancelar} className="sa-btn-ghost">
+          Cancelar
         </button>
       </div>
     </div>

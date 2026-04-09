@@ -38,6 +38,24 @@ export const veiculosIniciais: Veiculo[] = [
     ],
     ultimaAtualizacao: '2025-04-01',
     notas: '',
+    gastos: [
+      {
+        id: 'g1',
+        tipo: 'investimento',
+        descricao: 'Escapamento esportivo Capristo',
+        valor: 28000,
+        data: '2024-06-15',
+        createdAt: '2024-06-15T10:00:00.000Z',
+      },
+      {
+        id: 'g2',
+        tipo: 'manutencao',
+        descricao: 'Revisão dos 15.000 km — troca de óleo, filtros e pastilhas',
+        valor: 4500,
+        data: '2024-11-20',
+        createdAt: '2024-11-20T14:30:00.000Z',
+      },
+    ],
   },
   {
     id: '2',
@@ -76,6 +94,16 @@ export const veiculosIniciais: Veiculo[] = [
     ],
     ultimaAtualizacao: '2025-04-01',
     notas: '',
+    gastos: [
+      {
+        id: 'g3',
+        tipo: 'manutencao',
+        descricao: 'Troca de pneus Michelin Pilot Sport 4S',
+        valor: 6800,
+        data: '2025-01-10',
+        createdAt: '2025-01-10T09:00:00.000Z',
+      },
+    ],
   },
   {
     id: '3',
@@ -114,5 +142,23 @@ export const veiculosIniciais: Veiculo[] = [
     ],
     ultimaAtualizacao: '2025-04-01',
     notas: '',
+    gastos: [
+      {
+        id: 'g4',
+        tipo: 'investimento',
+        descricao: 'Rack de teto expedition e estribo lateral',
+        valor: 9200,
+        data: '2024-08-05',
+        createdAt: '2024-08-05T16:00:00.000Z',
+      },
+      {
+        id: 'g5',
+        tipo: 'manutencao',
+        descricao: 'Revisão dos 10.000 km',
+        valor: 3200,
+        data: '2024-12-01',
+        createdAt: '2024-12-01T11:00:00.000Z',
+      },
+    ],
   },
 ];

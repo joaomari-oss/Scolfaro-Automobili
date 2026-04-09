@@ -7,7 +7,6 @@ import BarrasChart from '../components/Charts/BarrasChart';
 import DonutChart from '../components/Charts/DonutChart';
 import DistribuicaoPanel from '../components/Charts/DistribuicaoPanel';
 import VeiculoSeletor from '../components/Charts/VeiculoSeletor';
-import { useIA } from '../hooks/useIA';
 import { showToast } from '../components/Layout/Toast';
 
 const SELECTION_KEY = 'scolfaro-automobili-chart-selection';
@@ -18,13 +17,13 @@ const DISMISS_DAYS  = 7;
 interface Props {
   veiculos: Veiculo[];
   theme: 'dark' | 'light';
-  onUpdateVeiculo: (id: string, data: Partial<Veiculo>) => void;
+  onAtualizarValores: (id: string) => Promise<{ erros: string[]; iaUsada?: 'gemini' | 'groq' }>;
+  onUpdateVeiculo: (id: string, data: Partial<Veiculo>) => Promise<Veiculo>;
 }
 
 type SortKey = 'modelo' | 'ano' | 'km' | 'mercado' | 'fipe' | 'diffR' | 'diffP' | 'data';
 
-export default function Valores({ veiculos, theme, onUpdateVeiculo }: Props) {
-  const { buscarValores } = useIA();
+export default function Valores({ veiculos, theme, onAtualizarValores, onUpdateVeiculo }: Props) {
 
   // ── Existing state ────────────────────────────────────────────────────────
   const [atualizando, setAtualizando] = useState(false);
@@ -132,28 +131,16 @@ export default function Valores({ veiculos, theme, onUpdateVeiculo }: Props) {
       const v = veiculos[i];
       setProgresso({ current: i + 1, total: veiculos.length });
       try {
-        const result = await buscarValores({
-          modelo: v.modelo, marca: v.marca, ano: v.ano,
-          quilometragem: v.quilometragem, combustivel: v.combustivel,
-        });
-        if (result) {
-          const hoje = new Date().toISOString().split('T')[0];
-          onUpdateVeiculo(v.id, {
-            valorMercado: result.valorMercado,
-            valorFipe: result.valorFipe,
-            ultimaAtualizacao: hoje,
-            historicovalorizacao: [
-              ...v.historicovalorizacao,
-              { data: hoje, valorMercado: result.valorMercado, valorFipe: result.valorFipe, fonte: 'IA Scolfaro' },
-            ],
-          });
+        const result = await onAtualizarValores(v.id);
+        if (result.erros.length > 0 && !result.iaUsada) {
+          showToast('error', `Falha ao atualizar ${v.modelo}`);
         }
       } catch {
         showToast('error', `Falha ao atualizar ${v.modelo}`);
       }
     }
     setAtualizando(false);
-    setBannerDismissed(false); // re-check after update
+    setBannerDismissed(false);
     showToast('success', 'Todos os valores foram atualizados!');
   };
 

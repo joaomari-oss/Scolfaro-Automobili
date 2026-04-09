@@ -10,6 +10,17 @@ export type TipoVeiculo =
   | 'utilitario'
   | 'classico';
 
+export type TipoGasto = 'investimento' | 'manutencao';
+
+export interface Gasto {
+  id: string;
+  tipo: TipoGasto;
+  descricao: string;
+  valor: number;
+  data: string;
+  createdAt: string;
+}
+
 export interface FichaTecnica {
   motor: string;
   potencia: string;
@@ -44,6 +55,7 @@ export interface Veiculo {
   carroceria: string;
   valorMercado: number;
   valorFipe: number;
+  codigoFipe?: string;
   fichatecnica: FichaTecnica;
   fotos: string[];
   favorito: boolean;
@@ -53,4 +65,7 @@ export interface Veiculo {
   combustivel: string;
   cambio: string;
   notas?: string;
+  gastos: Gasto[];
 }
+
+export type VeiculoEditavel = Omit<Veiculo, 'id' | 'historicovalorizacao' | 'favorito' | 'ultimaAtualizacao'>;

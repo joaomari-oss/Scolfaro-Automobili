@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Star, Trash2, Car } from 'lucide-react';
+import { Star, Trash2 } from 'lucide-react';
 import type { Veiculo } from '../../types/veiculo';
 import { formatCurrency, formatKm } from '../../utils/formatters';
+import FotoPlaceholder from '../Gallery/FotoPlaceholder';
 
 interface VeiculoCardProps {
   veiculo: Veiculo;
@@ -39,9 +40,7 @@ export default function VeiculoCard({ veiculo, onOpen, onToggleFavorito, onRemov
             onMouseLeave={e => ((e.target as HTMLImageElement).style.transform = 'scale(1)')}
           />
         ) : (
-          <div className="photo-placeholder">
-            <Car className="w-14 h-14" style={{ color: 'var(--border-primary)' }} />
-          </div>
+          <FotoPlaceholder className="photo-placeholder" />
         )}
 
         {/* Bottom gradient overlay */}

@@ -1,5 +1,9 @@
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseDisponivel } from '../lib/supabase';
 import type { Veiculo } from '../types/veiculo';
+
+function requireSupabase() {
+  if (!supabaseDisponivel) throw new Error('Supabase não configurado');
+}
 
 // snake_case DB → camelCase TS
 const fromDB = (r: any): Veiculo => ({
@@ -33,6 +37,7 @@ const toDB = (v: Partial<Veiculo>) => ({
 
 export const veiculosDB = {
   async listar(): Promise<Veiculo[]> {
+    requireSupabase();
     const { data, error } = await supabase
       .from('veiculos').select('*').order('created_at', { ascending: false });
     if (error) throw new Error(error.message);
@@ -40,6 +45,7 @@ export const veiculosDB = {
   },
 
   async adicionar(v: Omit<Veiculo, 'id'>): Promise<Veiculo> {
+    requireSupabase();
     const { data, error } = await supabase.from('veiculos')
       .insert(toDB(v)).select().single();
     if (error) throw new Error(error.message);
@@ -47,6 +53,7 @@ export const veiculosDB = {
   },
 
   async atualizar(id: string, v: Partial<Veiculo>): Promise<Veiculo> {
+    requireSupabase();
     const { data, error } = await supabase.from('veiculos')
       .update(toDB(v)).eq('id', id).select().single();
     if (error) throw new Error(error.message);
@@ -54,11 +61,13 @@ export const veiculosDB = {
   },
 
   async remover(id: string): Promise<void> {
+    requireSupabase();
     const { error } = await supabase.from('veiculos').delete().eq('id', id);
     if (error) throw new Error(error.message);
   },
 
   async toggleFavorito(id: string, favorito: boolean): Promise<void> {
+    requireSupabase();
     const { error } = await supabase.from('veiculos')
       .update({ favorito }).eq('id', id);
     if (error) throw new Error(error.message);
@@ -68,6 +77,7 @@ export const veiculosDB = {
     id: string, valorFipe: number, valorMercado: number,
     historicoAtual: any[], codigoFipe?: string
   ): Promise<void> {
+    requireSupabase();
     const novaEntrada = {
       data: new Date().toISOString(), valorMercado, valorFipe,
       fonte: 'FIPE Oficial + IA Web Search',
@@ -83,6 +93,7 @@ export const veiculosDB = {
 
   // Migração única do localStorage para o banco
   async migrarDoLocalStorage(): Promise<{ migrados: number; erros: number }> {
+    requireSupabase();
     const raw = localStorage.getItem('scolfaro_veiculos');
     if (!raw) return { migrados: 0, erros: 0 };
     const lista: Veiculo[] = JSON.parse(raw);

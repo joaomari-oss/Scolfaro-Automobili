@@ -16,6 +16,8 @@ import Favoritos from './pages/Favoritos';
 export default function App() {
   const { theme, toggleTheme } = useTheme();
   const { veiculos, loading, erro, adicionar, atualizar, remover, toggleFavorito, atualizarValores, adicionarGasto, editarGasto, removerGasto } = useVeiculos();
+  const [selectedVeiculo, setSelectedVeiculo] = useState<Veiculo | null>(null);
+  const [veiculoToRemove, setVeiculoToRemove] = useState<Veiculo | null>(null);
 
   if (loading) {
     return (
@@ -34,9 +36,6 @@ export default function App() {
       </div>
     );
   }
-
-  const [selectedVeiculo, setSelectedVeiculo] = useState<Veiculo | null>(null);
-  const [veiculoToRemove, setVeiculoToRemove] = useState<Veiculo | null>(null);
 
   const handleAddVeiculo = async (v: Veiculo) => {
     const { id: _id, ...semId } = v;

@@ -1,98 +1,41 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { veiculosDB } from '../services/veiculosDB';
-import { supabaseDisponivel } from '../lib/supabase';
 import { atualizarValoresVeiculo } from './useIA';
-import { getVeiculos, setVeiculos as saveVeiculos } from '../utils/storage';
-import { veiculosIniciais } from '../data/mockData';
 import type { Veiculo, Gasto } from '../types/veiculo';
 
-function normalizarVeiculo(v: Partial<Veiculo> & { id: string }): Veiculo {
-  return {
-    ...v,
-    fotos: v.fotos ?? [],
-    favorito: v.favorito ?? false,
-    gastos: v.gastos ?? [],
-    historicovalorizacao: v.historicovalorizacao ?? [],
-    fichatecnica: v.fichatecnica ?? {},
-    notas: v.notas ?? '',
-    placa: v.placa ?? '',
-    cor: v.cor ?? '',
-    combustivel: v.combustivel ?? '',
-    cambio: v.cambio ?? '',
-    ultimaAtualizacao: v.ultimaAtualizacao ?? new Date().toISOString(),
-  } as Veiculo;
-}
-
-function carregarLocal(): Veiculo[] {
-  try {
-    const raw = getVeiculos();
-    if (raw) return (JSON.parse(raw) as Veiculo[]).map(normalizarVeiculo);
-  } catch { /* ignora */ }
-  return veiculosIniciais.map(normalizarVeiculo);
-}
-
 export function useVeiculos() {
-  const usandoSupabase = supabaseDisponivel;
+  const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [erro, setErro]         = useState<string | null>(null);
 
-  const [veiculos, setVeiculosState] = useState<Veiculo[]>(() =>
-    usandoSupabase ? [] : carregarLocal()
-  );
-  const [loading, setLoading] = useState(usandoSupabase);
-  const [erro, setErro]       = useState<string | null>(null);
-
-  // Salva no localStorage sempre que muda (modo local)
-  const setVeiculos = useCallback((fn: Veiculo[] | ((prev: Veiculo[]) => Veiculo[])) => {
-    setVeiculosState(prev => {
-      const next = typeof fn === 'function' ? fn(prev) : fn;
-      if (!usandoSupabase) saveVeiculos(JSON.stringify(next));
-      return next;
-    });
-  }, [usandoSupabase]);
-
-  // Se Supabase disponível, carrega do banco na inicialização
-  useState(() => {
-    if (!usandoSupabase) return;
+  useEffect(() => {
     veiculosDB.listar()
-      .then(data => setVeiculosState(data))
+      .then(setVeiculos)
       .catch(e => setErro(e.message))
       .finally(() => setLoading(false));
-  });
+  }, []);
 
   const adicionar = async (v: Omit<Veiculo, 'id'>): Promise<Veiculo> => {
-    if (usandoSupabase) {
-      const novo = await veiculosDB.adicionar(v);
-      setVeiculos(prev => [novo, ...prev]);
-      return novo;
-    }
-    const novo: Veiculo = normalizarVeiculo({ ...v, id: crypto.randomUUID() });
+    const novo = await veiculosDB.adicionar(v);
     setVeiculos(prev => [novo, ...prev]);
     return novo;
   };
 
   const atualizar = async (id: string, dados: Partial<Veiculo>): Promise<Veiculo> => {
-    if (usandoSupabase) {
-      const atualizado = await veiculosDB.atualizar(id, dados);
-      setVeiculos(prev => prev.map(v => v.id === id ? atualizado : v));
-      return atualizado;
-    }
-    let atualizado!: Veiculo;
-    setVeiculos(prev => prev.map(v => {
-      if (v.id !== id) return v;
-      atualizado = normalizarVeiculo({ ...v, ...dados, id });
-      return atualizado;
-    }));
+    const atualizado = await veiculosDB.atualizar(id, dados);
+    setVeiculos(prev => prev.map(v => v.id === id ? atualizado : v));
     return atualizado;
   };
 
   const remover = async (id: string): Promise<void> => {
-    if (usandoSupabase) await veiculosDB.remover(id);
+    await veiculosDB.remover(id);
     setVeiculos(prev => prev.filter(v => v.id !== id));
   };
 
   const toggleFavorito = async (id: string): Promise<void> => {
     const v = veiculos.find(v => v.id === id);
     if (!v) return;
-    if (usandoSupabase) await veiculosDB.toggleFavorito(id, !v.favorito);
+    await veiculosDB.toggleFavorito(id, !v.favorito);
     setVeiculos(prev => prev.map(v => v.id === id ? { ...v, favorito: !v.favorito } : v));
   };
 
@@ -106,15 +49,13 @@ export function useVeiculos() {
     const resultado = await atualizarValoresVeiculo(veiculo);
 
     if (resultado.valorFipe || resultado.valorMercado) {
-      if (usandoSupabase) {
-        await veiculosDB.atualizarValores(
-          id,
-          resultado.valorFipe    ?? veiculo.valorFipe,
-          resultado.valorMercado ?? veiculo.valorMercado,
-          veiculo.historicovalorizacao,
-          resultado.codigoFipe
-        );
-      }
+      await veiculosDB.atualizarValores(
+        id,
+        resultado.valorFipe    ?? veiculo.valorFipe,
+        resultado.valorMercado ?? veiculo.valorMercado,
+        veiculo.historicovalorizacao,
+        resultado.codigoFipe
+      );
       const fonte = resultado.iaUsada === 'groq'
         ? 'Groq compound-beta'
         : 'Gemini 2.5 Flash + Google Search';
@@ -144,7 +85,7 @@ export function useVeiculos() {
     if (!v) return;
     const novoGasto: Gasto = { ...gasto, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
     const novosGastos = [...v.gastos, novoGasto];
-    if (usandoSupabase) await veiculosDB.atualizar(veiculoId, { gastos: novosGastos });
+    await veiculosDB.atualizar(veiculoId, { gastos: novosGastos });
     setVeiculos(prev => prev.map(v =>
       v.id === veiculoId ? { ...v, gastos: novosGastos } : v
     ));
@@ -154,7 +95,7 @@ export function useVeiculos() {
     const v = veiculos.find(v => v.id === veiculoId);
     if (!v) return;
     const novosGastos = v.gastos.map(g => g.id === gastoId ? { ...g, ...dados } : g);
-    if (usandoSupabase) await veiculosDB.atualizar(veiculoId, { gastos: novosGastos });
+    await veiculosDB.atualizar(veiculoId, { gastos: novosGastos });
     setVeiculos(prev => prev.map(v =>
       v.id === veiculoId ? { ...v, gastos: novosGastos } : v
     ));
@@ -164,7 +105,7 @@ export function useVeiculos() {
     const v = veiculos.find(v => v.id === veiculoId);
     if (!v) return;
     const novosGastos = v.gastos.filter(g => g.id !== gastoId);
-    if (usandoSupabase) await veiculosDB.atualizar(veiculoId, { gastos: novosGastos });
+    await veiculosDB.atualizar(veiculoId, { gastos: novosGastos });
     setVeiculos(prev => prev.map(v =>
       v.id === veiculoId ? { ...v, gastos: novosGastos } : v
     ));

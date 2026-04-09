@@ -17,7 +17,7 @@ function lsSalvar(lista: Veiculo[]): void {
 export function useVeiculos() {
   const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
   const [loading, setLoading]   = useState(true);
-  const [erro, setErro]         = useState<string | null>(null);
+  const [erro] = useState<string | null>(null);
 
   useEffect(() => {
     if (!supabaseDisponivel) {

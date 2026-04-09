@@ -75,8 +75,13 @@ function estimarValoresLocalmente(params: BuscarValoresBody): IAValores {
   };
 }
 
-// CORS: aceita apenas o frontend local (dev e preview)
-app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:4173'] }));
+// CORS: aceita frontend local + produção (GitHub Pages)
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:4173',
+  process.env.FRONTEND_URL,
+].filter(Boolean) as string[];
+app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
 
 // Rate limit: máximo 30 req/min por IP

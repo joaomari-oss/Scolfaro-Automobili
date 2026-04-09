@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
+import { API_BASE } from '../../utils/api';
 
 export default function BackendStatus() {
   const [status, setStatus] = useState<'checking' | 'online' | 'offline'>('checking');
 
   const check = async () => {
     try {
-      const res = await fetch('/api/health', { signal: AbortSignal.timeout(3000) });
+      const res = await fetch(`${API_BASE}/api/health`, { signal: AbortSignal.timeout(3000) });
       const data = await res.json();
       setStatus(data.status === 'ok' ? 'online' : 'offline');
     } catch {

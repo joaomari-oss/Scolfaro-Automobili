@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { showToast } from '../Layout/Toast';
+import { API_BASE } from '../../utils/api';
 
 interface AIValueFetcherProps {
   marca: string;
@@ -42,7 +43,7 @@ export default function AIValueFetcher({
     setMarketStatus('loading');
     setMarketError('');
     try {
-      const res = await fetch('/api/ia/buscar-valores', {
+      const res = await fetch(`${API_BASE}/api/ia/buscar-valores`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -74,7 +75,7 @@ export default function AIValueFetcher({
     setFipeStatus('loading');
     setFipeError('');
     try {
-      const res = await fetch('/api/fipe/search', {
+      const res = await fetch(`${API_BASE}/api/fipe/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ marca, modelo, ano: anoNum }),

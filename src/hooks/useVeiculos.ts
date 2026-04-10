@@ -5,6 +5,17 @@ import { atualizarValoresVeiculo } from './useIA';
 import type { Veiculo, Gasto } from '../types/veiculo';
 
 const LS_KEY = 'scolfaro_veiculos';
+const SUPABASE_TIMEOUT_MS = 8_000;
+
+/** Rejeita se a promise não resolver dentro do prazo */
+function comTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`Timeout após ${ms / 1000}s`)), ms)
+    ),
+  ]);
+}
 
 function lsListar(): Veiculo[] {
   try { return JSON.parse(localStorage.getItem(LS_KEY) ?? '[]'); }
@@ -25,11 +36,10 @@ export function useVeiculos() {
       setLoading(false);
       return;
     }
-    veiculosDB.listar()
+    comTimeout(veiculosDB.listar(), SUPABASE_TIMEOUT_MS)
       .then(setVeiculos)
       .catch(e => {
         console.error('Supabase erro ao listar:', e);
-        // fallback silencioso para localStorage
         setVeiculos(lsListar());
       })
       .finally(() => setLoading(false));

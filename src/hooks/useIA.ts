@@ -1,64 +1,39 @@
 // src/hooks/useIA.ts
+// Chama o backend (Render) para obter valores via IA.
+// As chaves de API ficam no servidor — nunca no bundle do frontend.
 
-import { buscarValorFipe, type FipeConsultaInput } from '../services/fipeService';
-import { buscarMercadoGemini, type MercadoInput, type MercadoOutput } from '../services/geminiService';
-import { buscarMercadoGroq } from '../services/groqService';
 import type { Veiculo } from '../types/veiculo';
 
-// ─── Busca de Valor de Mercado com fallback automático ───────────────────────
+// Em dev o proxy do Vite redireciona /api → localhost:3001.
+// Em produção VITE_API_URL deve apontar para o backend no Render.
+const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? '';
 
-export const buscarValorMercado = async (
-  veiculo: MercadoInput
-): Promise<(MercadoOutput & { iaUsada: 'gemini' | 'groq' }) | null> => {
-
-  const geminiKey = import.meta.env.VITE_GEMINI_API_KEY;
-  const groqKey   = import.meta.env.VITE_GROQ_API_KEY;
-
-  // TENTATIVA 1: Gemini 2.5 Flash com Google Search Grounding
-  if (geminiKey) {
-    try {
-      console.log('[IA] Tentando Gemini 2.5 Flash...');
-      const resultado = await buscarMercadoGemini(veiculo, geminiKey);
-      if (resultado) {
-        console.log('[IA] ✓ Gemini retornou valor de mercado');
-        return { ...resultado, iaUsada: 'gemini' };
-      }
-    } catch (err: any) {
-      if (err.isRateLimit) {
-        console.warn('[IA] Gemini atingiu rate limit — usando Groq como fallback');
-      } else {
-        console.warn('[IA] Gemini falhou:', err.message, '— usando Groq como fallback');
-      }
-    }
-  } else {
-    console.warn('[IA] VITE_GEMINI_API_KEY não definida — pulando Gemini');
-  }
-
-  // TENTATIVA 2: Groq compound-beta com web search nativo
-  if (groqKey) {
-    try {
-      console.log('[IA] Tentando Groq compound-beta...');
-      const resultado = await buscarMercadoGroq(veiculo, groqKey);
-      if (resultado) {
-        console.log('[IA] ✓ Groq retornou valor de mercado');
-        return { ...resultado, iaUsada: 'groq' };
-      }
-    } catch (err: any) {
-      console.error('[IA] Groq também falhou:', err.message);
-    }
-  } else {
-    console.warn('[IA] VITE_GROQ_API_KEY não definida — fallback indisponível');
-  }
-
-  console.error('[IA] Todas as IAs falharam — valor de mercado não atualizado');
-  return null;
+// ─── Fallback local (quando o backend está totalmente indisponível) ───────────
+const BASE_POR_MARCA: Record<string, number> = {
+  ferrari: 2_100_000, lamborghini: 2_600_000, porsche: 950_000,
+  mclaren: 2_300_000, maserati: 780_000, 'land rover': 650_000,
+  'range rover': 900_000, mercedes: 380_000, bmw: 320_000,
+  audi: 290_000, volvo: 260_000, toyota: 180_000, honda: 160_000,
+  jeep: 210_000, volkswagen: 135_000, chevrolet: 125_000, fiat: 95_000,
 };
 
-// ─── Função principal de atualização completa (FIPE + Mercado) ──────────────
+function estimarLocalmente(veiculo: Veiculo): { valorFipe: number; valorMercado: number } {
+  const idade = Math.max(0, new Date().getFullYear() - veiculo.ano);
+  const km    = veiculo.quilometragem || 0;
+  const marca = veiculo.marca.toLowerCase();
+  const base  = Object.entries(BASE_POR_MARCA).find(([k]) => marca.includes(k))?.[1] ?? 120_000;
+  const dep   = Math.max(0.4, 1 - idade * 0.05);
+  const ajKm  = km < 30_000 ? 1.05 : km < 80_000 ? 1 : km < 150_000 ? 0.93 : 0.85;
+  const valorFipe    = Math.round(base * dep);
+  const valorMercado = Math.round(valorFipe * ajKm * 1.04);
+  return { valorFipe, valorMercado };
+}
+
+// ─── Função principal de atualização completa ────────────────────────────────
 
 export const atualizarValoresVeiculo = async (
   veiculo: Veiculo,
-  onProgress?: (etapa: string) => void
+  onProgress?: (etapa: string) => void,
 ): Promise<{
   valorFipe: number | null;
   valorMercado: number | null;
@@ -66,37 +41,48 @@ export const atualizarValoresVeiculo = async (
   iaUsada?: 'gemini' | 'groq';
   erros: string[];
 }> => {
-  const erros: string[] = [];
+  onProgress?.('Consultando IA para valores atualizados...');
 
-  const input: MercadoInput & FipeConsultaInput = {
-    marca:         veiculo.marca,
-    modelo:        veiculo.modelo,
-    ano:           veiculo.ano,
-    quilometragem: veiculo.quilometragem,
-    combustivel:   veiculo.combustivel,
-    cambio:        veiculo.cambio,
-    cor:           veiculo.cor,
-    tipo:          veiculo.tipo,
-  };
+  try {
+    const res = await fetch(`${API_BASE}/api/ia/buscar-valores`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        marca:         veiculo.marca,
+        modelo:        veiculo.modelo,
+        ano:           veiculo.ano,
+        quilometragem: veiculo.quilometragem,
+        combustivel:   veiculo.combustivel,
+      }),
+    });
 
-  onProgress?.('Consultando Tabela FIPE e pesquisando preços de mercado...');
+    if (!res.ok) throw new Error(`Backend retornou ${res.status}`);
 
-  const [fipeResult, mercadoResult] = await Promise.allSettled([
-    buscarValorFipe(input),
-    buscarValorMercado(input),
-  ]);
+    const data = await res.json() as {
+      valorMercado: number;
+      valorFipe: number;
+      observacao: string;
+      iaUsada?: 'gemini' | 'groq' | 'local';
+    };
 
-  const fipe    = fipeResult.status    === 'fulfilled' ? fipeResult.value    : null;
-  const mercado = mercadoResult.status === 'fulfilled' ? mercadoResult.value : null;
+    console.info(`[IA] ✓ Valores recebidos do backend (fonte: ${data.iaUsada ?? 'desconhecida'})`);
 
-  if (!fipe)    erros.push('FIPE não encontrada na tabela oficial');
-  if (!mercado) erros.push('Valor de mercado não encontrado');
+    return {
+      valorFipe:    data.valorFipe,
+      valorMercado: data.valorMercado,
+      iaUsada:      data.iaUsada === 'local' ? undefined : data.iaUsada,
+      erros:        [],
+    };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn('[IA] Backend indisponível, usando estimativa local:', msg);
 
-  return {
-    valorFipe:    fipe?.valorFipe    ?? null,
-    valorMercado: mercado?.valorMercado ?? null,
-    codigoFipe:   fipe?.codigoFipe,
-    iaUsada:      mercado?.iaUsada,
-    erros,
-  };
+    const estimativa = estimarLocalmente(veiculo);
+    return {
+      valorFipe:    estimativa.valorFipe,
+      valorMercado: estimativa.valorMercado,
+      iaUsada:      undefined,
+      erros:        [`Backend indisponível — valores estimados localmente`],
+    };
+  }
 };

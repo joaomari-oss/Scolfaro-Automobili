@@ -168,7 +168,7 @@ Retorne exatamente neste formato:
       });
       const parsed = parseAndValidate(result.response.text().trim());
       console.info('[IA] Respondido por Gemini');
-      res.json(parsed);
+      res.json({ ...parsed, iaUsada: 'gemini' });
       return;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -192,7 +192,7 @@ Retorne exatamente neste formato:
       const raw = completion.choices[0]?.message?.content ?? '';
       const parsed = parseAndValidate(raw);
       console.info('[IA] Respondido por Groq');
-      res.json(parsed);
+      res.json({ ...parsed, iaUsada: 'groq' });
       return;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -202,7 +202,7 @@ Retorne exatamente neste formato:
 
   // ── 3. Fallback local ───────────────────────────────────────────────────────
   console.warn('[IA] Todas as IAs indisponíveis — usando estimativa local');
-  res.json(estimarValoresLocalmente({ modelo, marca, ano, quilometragem, combustivel }));
+  res.json({ ...estimarValoresLocalmente({ modelo, marca, ano, quilometragem, combustivel }), iaUsada: 'local' });
 });
 
 // ─── Healthcheck ──────────────────────────────────────────────────────────────

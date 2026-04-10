@@ -1,0 +1,19 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Scolfaro Automobili</title>
+    <script>
+      // GitHub Pages não tem servidor para rotas SPA — redireciona para a raiz
+      // preservando o path como parâmetro para o React Router restaurar depois.
+      var base = window.location.pathname.split('/').slice(0, 2).join('/');
+      var rest = window.location.pathname.slice(base.length);
+      var search = window.location.search;
+      var hash = window.location.hash;
+      // Redireciona para a home com a rota original codificada
+      sessionStorage.setItem('redirect', rest + search + hash);
+      window.location.replace(base + '/');
+    </script>
+  </head>
+  <body></body>
+</html>

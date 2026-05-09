@@ -88,14 +88,29 @@ export default function AddVeiculoForm({ marcasExistentes, onSave }: Props) {
         if (dados.modelo) setModelo(dados.modelo);
         if (dados.ano) setAno(dados.ano);
         if (dados.cor) setCor(dados.cor);
-        if (dados.combustivel) setCombustivel(dados.combustivel);
+        if (dados.combustivel) {
+          const cbFound = combustivelOpcoes.find(c =>
+            c.toLowerCase() === dados.combustivel!.toLowerCase()
+          );
+          if (cbFound) setCombustivel(cbFound);
+        }
         if (dados.motor) setMotor(dados.motor);
-        showToast('success', 'Dados da placa preenchidos automaticamente!');
+        if (dados.tipo) {
+          const found = tiposOpcoes.find(t =>
+            t.value === dados.tipo || t.label.toLowerCase().includes(dados.tipo!.toLowerCase())
+          );
+          if (found) setTipo(found.value);
+        }
+        if (dados.estimado) {
+          showToast('success', 'Dados estimados pela IA. Confirme os campos antes de salvar.');
+        } else {
+          showToast('success', 'Dados do DENATRAN preenchidos automaticamente!');
+        }
       } else {
-        showToast('error', 'N\u00e3o foi poss\u00edvel encontrar dados para esta placa.');
+        showToast('error', 'Não foi possível identificar dados para esta placa. Preencha manualmente.');
       }
     } catch {
-      showToast('error', 'Erro ao buscar placa.');
+      showToast('error', 'Erro ao buscar placa. Verifique sua conexão.');
     } finally {
       setBuscandoPlaca(false);
     }

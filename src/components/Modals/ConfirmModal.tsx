@@ -1,18 +1,29 @@
+import { useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 
 interface ConfirmModalProps {
   theme: 'dark' | 'light';
   title: string;
   message: string;
-  onConfirm: () => void;
+  onConfirm: () => Promise<void> | void;
   onCancel: () => void;
 }
 
 export default function ConfirmModal({ title, message, onConfirm, onCancel }: ConfirmModalProps) {
+  const [loading, setLoading] = useState(false);
+
+  const handleConfirm = async () => {
+    setLoading(true);
+    try {
+      await onConfirm();
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <div
       className="fixed inset-0 z-[90] flex items-center justify-center px-4 animate-fade-in"
-      onClick={onCancel}
+      onClick={loading ? undefined : onCancel}
     >
       <div className="absolute inset-0" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(6px)' }} />
       <div
@@ -39,25 +50,36 @@ export default function ConfirmModal({ title, message, onConfirm, onCancel }: Co
         <div className="flex gap-3 justify-end">
           <button
             onClick={onCancel}
+            disabled={loading}
             className="px-4 py-2 rounded-lg text-sm font-medium border"
             style={{
               borderColor: 'var(--border-primary)',
               color: 'var(--text-secondary)',
               backgroundColor: 'transparent',
+              opacity: loading ? 0.5 : 1,
+              cursor: loading ? 'not-allowed' : 'pointer',
             }}
-            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)')}
+            onMouseEnter={e => { if (!loading) e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'; }}
             onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
           >
             Cancelar
           </button>
           <button
-            onClick={onConfirm}
-            className="px-4 py-2 rounded-lg text-sm font-semibold text-white"
-            style={{ backgroundColor: 'var(--color-danger)' }}
-            onMouseEnter={e => (e.currentTarget.style.filter = 'brightness(1.1)')}
+            onClick={handleConfirm}
+            disabled={loading}
+            className="px-4 py-2 rounded-lg text-sm font-semibold text-white flex items-center gap-2"
+            style={{
+              backgroundColor: 'var(--color-danger)',
+              opacity: loading ? 0.8 : 1,
+              cursor: loading ? 'not-allowed' : 'pointer',
+            }}
+            onMouseEnter={e => { if (!loading) e.currentTarget.style.filter = 'brightness(1.1)'; }}
             onMouseLeave={e => (e.currentTarget.style.filter = 'none')}
           >
-            Remover
+            {loading && (
+              <span className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
+            )}
+            {loading ? 'Removendo...' : 'Remover'}
           </button>
         </div>
       </div>

@@ -111,11 +111,16 @@ export default function App() {
   };
 
   const handleConfirmRemove = async () => {
-    if (veiculoToRemove) {
+    if (!veiculoToRemove) return;
+    try {
       await remover(veiculoToRemove.id);
       showToast('success', `${veiculoToRemove.modelo} removido.`);
-      setVeiculoToRemove(null);
       if (selectedVeiculo?.id === veiculoToRemove.id) setSelectedVeiculo(null);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erro ao remover';
+      showToast('error', `Erro ao remover: ${msg}`);
+    } finally {
+      setVeiculoToRemove(null);
     }
   };
 

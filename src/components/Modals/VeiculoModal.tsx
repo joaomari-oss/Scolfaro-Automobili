@@ -64,10 +64,15 @@ export default function VeiculoModal({
     }
   };
 
-  const handleSalvarEdicao = (id: string, dados: VeiculoEditavel) => {
+  const handleSalvarEdicao = async (id: string, dados: VeiculoEditavel) => {
     const hoje = new Date().toISOString().split('T')[0];
-    onUpdate(id, { ...dados, ultimaAtualizacao: hoje });
-    showToast('success', 'Veículo atualizado com sucesso');
+    try {
+      await onUpdate(id, { ...dados, ultimaAtualizacao: hoje });
+      showToast('success', 'Veículo atualizado com sucesso');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erro desconhecido';
+      showToast('error', `Erro ao salvar: ${msg}`);
+    }
   };
 
   const fichaTecnicaRows = [

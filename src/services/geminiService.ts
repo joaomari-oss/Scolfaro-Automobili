@@ -20,33 +20,25 @@ export interface MercadoOutput {
   fonte: string;
 }
 
-const montarPromptMercado = (v: MercadoInput): string => `
-Você é um avaliador especialista em veículos usados no mercado brasileiro.
-Pesquise no Google o valor de mercado ATUAL deste veículo específico:
+const montarPromptMercado = (v: MercadoInput): string => {
+  const anoAtual = new Date().getFullYear();
+  return `
+Busque AGORA no Google o preço de venda de um ${v.marca} ${v.modelo} ${v.ano} no Brasil em ${anoAtual}.
 
-DADOS COMPLETOS DO VEÍCULO:
-- Marca: ${v.marca}
-- Modelo: ${v.modelo}
-- Ano: ${v.ano}
-- Quilometragem: ${v.quilometragem.toLocaleString('pt-BR')} km
-- Combustível: ${v.combustivel}
-- Câmbio: ${v.cambio}
-- Cor: ${v.cor}
-- Tipo: ${v.tipo}
+Pesquise especificamente:
+- "${v.marca} ${v.modelo} ${v.ano} venda" no webmotors.com.br
+- "${v.marca} ${v.modelo} ${v.ano} venda" no icarros.com.br
+- "${v.marca} ${v.modelo} ${v.ano} venda" no olx.com.br
 
-INSTRUÇÕES:
-1. Pesquise preços reais em: Webmotors, OLX Autos e iCarros
-2. Use todos os dados acima para refinar a busca (não apenas marca e modelo)
-3. Colete pelo menos 3 preços de anúncios reais
-4. Calcule a média ajustada pela quilometragem (${v.quilometragem.toLocaleString('pt-BR')} km):
-   - Abaixo de 30.000 km: +5% a +10% sobre a média
-   - Acima de 100.000 km: -5% a -15% sobre a média
-5. Retorne APENAS JSON válido, sem markdown, sem explicações:
+Dados adicionais do veículo: ${v.quilometragem.toLocaleString('pt-BR')} km, ${v.combustivel}, ${v.cambio}.
 
-{"valorMercado":000000,"precosEncontrados":[000000,000000],"sitesConsultados":["webmotors"],"observacao":"Baseado em X anúncios. Ajuste de Y% pela quilometragem."}
+APÓS buscar os preços reais nos sites, retorne SOMENTE este JSON (sem markdown, sem texto antes ou depois):
+{"valorMercado": PRECO_MEDIO_EM_REAIS, "observacao": "Baseado em anúncios reais de SITE em MES/ANO"}
 
-valorMercado deve ser número inteiro em reais sem pontuação.
+valorMercado = número inteiro, em reais, SEM pontos ou vírgulas. Exemplo para carro de R$ 850.000: 850000
+NÃO use valores da sua memória. Use APENAS os preços encontrados na busca agora.
 `.trim();
+};
 
 export const buscarMercadoGemini = async (
   veiculo: MercadoInput,
@@ -84,10 +76,15 @@ export const buscarMercadoGemini = async (
     if (!jsonMatch) throw new Error('JSON não encontrado na resposta Gemini');
 
     const resultado = JSON.parse(jsonMatch[0]);
-    if (typeof resultado.valorMercado !== 'number') throw new Error('valorMercado inválido');
+    // Aceita tanto number quanto string (ex: "850000" ou "850.000")
+    const raw = resultado.valorMercado;
+    const valor = typeof raw === 'number' ? raw
+      : typeof raw === 'string' ? parseFloat(raw.replace(/\./g, '').replace(',', '.')) : NaN;
+    console.log('[Gemini] valorMercado raw:', raw, '\u2192 parsed:', valor);
+    if (!valor || isNaN(valor) || valor < 1000) throw new Error(`valorMercado inv\u00e1lido: ${raw}`);
 
     return {
-      valorMercado: Math.round(resultado.valorMercado),
+      valorMercado: Math.round(valor),
       observacao: resultado.observacao ?? '',
       fonte: 'Gemini 2.5 Flash + Google Search',
     };

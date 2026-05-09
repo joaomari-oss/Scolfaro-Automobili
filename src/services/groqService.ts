@@ -5,22 +5,21 @@ import type { MercadoInput, MercadoOutput } from './geminiService';
 const GROQ_BASE = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_MODEL = 'compound-beta';
 
-const montarPromptMercadoGroq = (v: MercadoInput): string => `
-Você é um avaliador especialista em veículos usados no mercado brasileiro.
-Pesquise na web o valor de mercado ATUAL deste veículo:
+const montarPromptMercadoGroq = (v: MercadoInput): string => {
+  const anoAtual = new Date().getFullYear();
+  return `
+Busque na web o preço atual de venda de um ${v.marca} ${v.modelo} ${v.ano} no Brasil em ${anoAtual}.
 
-VEÍCULO: ${v.marca} ${v.modelo} ${v.ano}
-QUILOMETRAGEM: ${v.quilometragem.toLocaleString('pt-BR')} km
-COMBUSTÍVEL: ${v.combustivel} | CÂMBIO: ${v.cambio} | COR: ${v.cor}
+Pesquise em webmotors.com.br, icarros.com.br e olx.com.br por "${v.marca} ${v.modelo} ${v.ano} venda".
+Dados do veículo: ${v.quilometragem.toLocaleString('pt-BR')} km, ${v.combustivel}.
 
-Pesquise em: webmotors.com.br, olx.com.br, icarros.com.br
-Colete preços reais e calcule a média ajustada pela quilometragem.
-Retorne APENAS JSON válido:
+APÓS encontrar os preços reais, retorne SOMENTE este JSON (sem markdown, sem texto adicional):
+{"valorMercado": PRECO_MEDIO_EM_REAIS, "observacao": "Baseado em anúncios de SITE em MES/ANO"}
 
-{"valorMercado":000000,"observacao":"texto breve"}
-
-valorMercado = número inteiro em reais sem pontuação.
+valorMercado = número inteiro em reais SEM pontos ou vírgulas. Para R$ 850.000 retorne 850000.
+NÃO use valores da sua memória. Use APENAS preços encontrados na busca agora.
 `.trim();
+};
 
 export const buscarMercadoGroq = async (
   veiculo: MercadoInput,
@@ -55,10 +54,14 @@ export const buscarMercadoGroq = async (
     if (!jsonMatch) throw new Error('JSON não encontrado na resposta Groq');
 
     const resultado = JSON.parse(jsonMatch[0]);
-    if (typeof resultado.valorMercado !== 'number') throw new Error('valorMercado inválido');
+    const raw = resultado.valorMercado;
+    const valor = typeof raw === 'number' ? raw
+      : typeof raw === 'string' ? parseFloat(raw.replace(/\./g, '').replace(',', '.')) : NaN;
+    console.log('[Groq] valorMercado raw:', raw, '\u2192 parsed:', valor);
+    if (!valor || isNaN(valor) || valor < 1000) throw new Error(`valorMercado inv\u00e1lido: ${raw}`);
 
     return {
-      valorMercado: Math.round(resultado.valorMercado),
+      valorMercado: Math.round(valor),
       observacao: resultado.observacao ?? '',
       fonte: 'Groq compound-beta + Web Search',
     };

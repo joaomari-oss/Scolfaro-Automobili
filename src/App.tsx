@@ -134,6 +134,28 @@ export default function App() {
           onOpenApresentacao={() => setShowApresentacao(true)}
         />
 
+        {!supabaseDisponivel && (
+          <div style={{
+            backgroundColor: '#7c3aed22',
+            borderBottom: '1px solid #7c3aed55',
+            padding: '8px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            fontSize: 13,
+            color: '#c4b5fd',
+            textAlign: 'center',
+            flexWrap: 'wrap',
+          }}>
+            <span style={{ fontSize: 15 }}>⚠️</span>
+            <span>
+              <strong>Banco de dados não configurado</strong> — dados salvos só neste dispositivo.
+              Configure <code style={{ backgroundColor: '#ffffff15', padding: '1px 5px', borderRadius: 4 }}>VITE_SUPABASE_URL</code> e <code style={{ backgroundColor: '#ffffff15', padding: '1px 5px', borderRadius: 4 }}>VITE_SUPABASE_ANON_KEY</code> no Vercel para sincronizar entre dispositivos.
+            </span>
+          </div>
+        )}
+
         <main>
           <Routes>
             <Route path="/" element={<Inicio veiculos={veiculos} theme={theme} onSelectVeiculo={setSelectedVeiculo} />} />

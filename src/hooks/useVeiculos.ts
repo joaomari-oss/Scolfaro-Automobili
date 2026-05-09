@@ -52,17 +52,11 @@ export function useVeiculos() {
       setVeiculos(prev => { const next = [novo, ...prev]; lsSalvar(next); return next; });
       return novo;
     }
-    try {
-      const novo = await veiculosDB.adicionar(v);
-      setVeiculos(prev => [novo, ...prev]);
-      return novo;
-    } catch (err) {
-      // Supabase falhou: salva localmente para não perder o dado
-      console.error('Supabase erro ao adicionar, salvando localmente:', err);
-      const novo: Veiculo = { ...v, id: crypto.randomUUID() };
-      setVeiculos(prev => { const next = [novo, ...prev]; lsSalvar(next); return next; });
-      return novo;
-    }
+    // Supabase configurado: deixa o erro propagar — não salvar localmente
+    // silenciosamente pois o dado não estaria sincronizado entre dispositivos
+    const novo = await veiculosDB.adicionar(v);
+    setVeiculos(prev => [novo, ...prev]);
+    return novo;
   };
 
   const atualizar = async (id: string, dados: Partial<Veiculo>): Promise<Veiculo> => {

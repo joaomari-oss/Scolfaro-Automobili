@@ -3,6 +3,7 @@ import { showToast } from '../Layout/Toast';
 import { API_BASE } from '../../utils/api';
 import { buscarMercadoGemini } from '../../services/geminiService';
 import { buscarMercadoGroq } from '../../services/groqService';
+import { buscarValorFipe } from '../../services/fipeService';
 
 const GEMINI_KEY = (import.meta.env.VITE_GEMINI_API_KEY as string | undefined) ?? '';
 const GROQ_KEY   = (import.meta.env.VITE_GROQ_API_KEY   as string | undefined) ?? '';
@@ -19,10 +20,6 @@ interface AIValueFetcherProps {
 
 type FetchStatus = 'idle' | 'loading' | 'success' | 'error';
 
-function parseValueBR(str: string): number {
-  const clean = str.replace(/[R$\s.]/g, '').replace(',', '.');
-  return parseFloat(clean) || 0;
-}
 
 export default function AIValueFetcher({
   marca,
@@ -55,20 +52,24 @@ export default function AIValueFetcher({
     };
 
     try {
-      // 1. Backend
+      // 1. Backend — wrapped in own try/catch so network errors fall through
       if (API_BASE) {
-        const res = await fetch(`${API_BASE}/api/ia/buscar-valores`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(input), signal: AbortSignal.timeout(10_000),
-        });
-        if (res.ok) {
-          const data = await res.json() as { valorMercado: number; valorFipe: number; observacao: string };
-          setMarketDetails(data);
-          setMarketStatus('success');
-          onMarketValueFound(data.valorMercado);
-          onFipeFound(data.valorFipe);
-          showToast('success', 'Valores preenchidos pela IA!');
-          return;
+        try {
+          const res = await fetch(`${API_BASE}/api/ia/buscar-valores`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(input), signal: AbortSignal.timeout(10_000),
+          });
+          if (res.ok) {
+            const data = await res.json() as { valorMercado: number; valorFipe: number; observacao: string };
+            setMarketDetails(data);
+            setMarketStatus('success');
+            onMarketValueFound(data.valorMercado);
+            onFipeFound(data.valorFipe);
+            showToast('success', 'Valores preenchidos pela IA!');
+            return;
+          }
+        } catch {
+          // backend inacessível — continua para Gemini
         }
       }
 
@@ -118,31 +119,19 @@ export default function AIValueFetcher({
     setFipeStatus('loading');
     setFipeError('');
     try {
-      const res = await fetch(`${API_BASE}/api/fipe/search`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ marca, modelo, ano: anoNum }),
+      const result = await buscarValorFipe({
+        marca, modelo, ano: anoNum,
+        combustivel: combustivel || 'Gasolina',
+        tipo: 'sedan',
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({})) as { error?: string };
-        throw new Error(err.error ?? `Erro ${res.status}`);
-      }
-      const json = await res.json() as { success: boolean; data: { found: boolean; data: Record<string, string | number> | null; error?: string } };
-      if (json.success && json.data?.found && json.data?.data) {
-        const fipeData = json.data.data;
-        const valorStr = String(fipeData.valor ?? fipeData.Valor ?? fipeData.price ?? '');
-        const valorNum = parseValueBR(valorStr);
-        if (valorNum > 0) {
-          setFipeDetails(fipeData);
-          setFipeStatus('success');
-          onFipeFound(valorNum);
-          showToast('success', 'Valor FIPE encontrado!');
-        } else {
-          throw new Error('Não foi possível parsear o valor FIPE: ' + valorStr);
-        }
+      if (result) {
+        setFipeDetails({ codigoFipe: result.codigoFipe, mesReferencia: result.mesReferencia });
+        setFipeStatus('success');
+        onFipeFound(result.valorFipe);
+        showToast('success', `Valor FIPE encontrado: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(result.valorFipe)}`);
       } else {
         setFipeStatus('error');
-        setFipeError(json.data?.error ?? 'Veículo não encontrado na tabela FIPE');
+        setFipeError('Veículo não encontrado na tabela FIPE');
       }
     } catch (err) {
       setFipeStatus('error');

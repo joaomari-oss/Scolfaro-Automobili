@@ -33,6 +33,7 @@ export const buscarMercadoGroq = async (
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
       },
+      signal: AbortSignal.timeout(30_000),
       body: JSON.stringify({
         model: GROQ_MODEL,
         messages: [{ role: 'user', content: montarPromptMercadoGroq(veiculo) }],

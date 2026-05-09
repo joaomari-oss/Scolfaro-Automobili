@@ -58,6 +58,7 @@ export const buscarMercadoGemini = async (
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(30_000),
         body: JSON.stringify({
           contents: [{ parts: [{ text: montarPromptMercado(veiculo) }] }],
           tools: [{ googleSearch: {} }],

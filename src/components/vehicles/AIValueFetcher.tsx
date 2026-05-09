@@ -51,6 +51,12 @@ export default function AIValueFetcher({
       combustivel: combustivel || 'Gasolina',
     };
 
+    // Timeout geral de 60s para evitar loading infinito
+    const timer = setTimeout(() => {
+      setMarketStatus('error');
+      setMarketError('Tempo esgotado. Tente novamente.');
+    }, 60_000);
+
     try {
       // 1. Backend — wrapped in own try/catch so network errors fall through
       if (API_BASE) {
@@ -111,6 +117,8 @@ export default function AIValueFetcher({
     } catch (err) {
       setMarketStatus('error');
       setMarketError(err instanceof Error ? err.message : String(err));
+    } finally {
+      clearTimeout(timer);
     }
   };
 

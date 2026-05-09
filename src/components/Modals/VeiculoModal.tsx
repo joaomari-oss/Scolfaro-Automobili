@@ -1,12 +1,21 @@
 import { useState } from 'react';
-import { X, RefreshCw } from 'lucide-react';
+import { X, RefreshCw, QrCode } from 'lucide-react';
+import { PDFDownloadLink } from '@react-pdf/renderer';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import type { Veiculo, VeiculoEditavel, Gasto } from '../../types/veiculo';
+import type { Veiculo, VeiculoEditavel, Gasto, Proprietario, Seguro, Tag } from '../../types/veiculo';
 import { formatCurrency, formatKm, formatDate } from '../../utils/formatters';
 import { showToast } from '../Layout/Toast';
 import FotoCarrossel from '../Gallery/FotoCarrossel';
 import EditarVeiculoForm from '../Forms/EditarVeiculoForm';
 import ControleGastos from '../Gastos/ControleGastos';
+import DepreciacaoChart from '../Charts/DepreciacaoChart';
+import RoiCard from '../Cards/RoiCard';
+import ProprietariosTimeline from '../Cards/ProprietariosTimeline';
+import SeguroCard from '../Cards/SeguroCard';
+import AnunciosSimilares from '../Cards/AnunciosSimilares';
+import TagsVeiculo from '../Cards/TagsVeiculo';
+import QRCodeModal from './QRCodeModal';
+import FichaVeiculoPDF from '../PDF/FichaVeiculoPDF';
 
 interface VeiculoModalProps {
   veiculo: Veiculo;
@@ -19,7 +28,7 @@ interface VeiculoModalProps {
   onRemoverGasto: (veiculoId: string, gastoId: string) => void;
 }
 
-type AbaModal = 'ficha' | 'valorizacao' | 'editar' | 'gastos';
+type AbaModal = 'ficha' | 'valorizacao' | 'depreciacao' | 'roi' | 'proprietarios' | 'seguro' | 'anuncios' | 'editar' | 'gastos';
 
 export default function VeiculoModal({
   veiculo,
@@ -35,6 +44,7 @@ export default function VeiculoModal({
   const [abaAtiva, setAbaAtiva] = useState<AbaModal>('ficha');
   const [loading, setLoading] = useState(false);
   const [ultimaIAUsada, setUltimaIAUsada] = useState<'gemini' | 'groq' | null>(null);
+  const [qrOpen, setQrOpen] = useState(false);
 
   const handleAtualizar = async () => {
     setLoading(true);
@@ -88,31 +98,71 @@ export default function VeiculoModal({
   const diff = veiculo.valorMercado - veiculo.valorFipe;
 
   const abas: { key: AbaModal; label: string }[] = [
-    { key: 'ficha',       label: 'Ficha Técnica' },
-    { key: 'valorizacao', label: 'Valorização' },
-    { key: 'editar',      label: '✏️ Editar' },
-    { key: 'gastos',      label: '💰 Gastos' },
+    { key: 'ficha',         label: 'Ficha' },
+    { key: 'valorizacao',   label: 'Histórico' },
+    { key: 'depreciacao',   label: 'Depreciação' },
+    { key: 'roi',           label: 'ROI' },
+    { key: 'proprietarios', label: 'Proprietários' },
+    { key: 'seguro',        label: 'Seguro' },
+    { key: 'anuncios',      label: 'Anúncios' },
+    { key: 'editar',        label: '✏️ Editar' },
+    { key: 'gastos',        label: '💰 Gastos' },
   ];
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto py-8 px-4 animate-fade-in"
+      className="fixed inset-0 z-[80] flex items-end sm:items-start justify-center sm:overflow-y-auto sm:py-8 sm:px-4 animate-fade-in"
       onClick={onClose}
     >
       <div className="absolute inset-0" style={{ backgroundColor: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }} />
       <div
         className="sa-modal relative w-full max-w-3xl animate-fade-in-up"
         onClick={e => e.stopPropagation()}
+        style={{ maxHeight: '95dvh', overflowY: 'auto' }}
       >
-        {/* Close */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 z-10 p-2 rounded-xl"
-          style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
-          aria-label="Fechar"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        {/* QR Code Modal */}
+        {qrOpen && (
+          <QRCodeModal
+            veiculoId={veiculo.id}
+            nomeVeiculo={`${veiculo.marca} ${veiculo.modelo}`}
+            onClose={() => setQrOpen(false)}
+          />
+        )}
+
+        {/* Top-right buttons */}
+        <div className="absolute top-4 right-4 z-10 flex gap-2">
+          <button
+            onClick={() => setQrOpen(true)}
+            className="p-2 rounded-xl"
+            style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
+            title="Gerar QR Code"
+          >
+            <QrCode className="w-4 h-4" />
+          </button>
+          <PDFDownloadLink
+            document={<FichaVeiculoPDF veiculo={veiculo} />}
+            fileName={`${veiculo.marca}_${veiculo.modelo}_${veiculo.ano}.pdf`}
+          >
+            {({ loading: pdfLoading }) => (
+              <button
+                className="p-2 rounded-xl text-xs font-medium"
+                style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
+                title="Baixar PDF"
+                disabled={pdfLoading}
+              >
+                {pdfLoading ? '…' : 'PDF'}
+              </button>
+            )}
+          </PDFDownloadLink>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-xl"
+            style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
+            aria-label="Fechar"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
         {/* Gallery */}
         <div
@@ -165,21 +215,30 @@ export default function VeiculoModal({
         <div className="p-6 space-y-6">
 
           {/* Meta info row */}
-          <div className="flex flex-wrap gap-2">
-            {[
-              veiculo.cor,
-              veiculo.combustivel,
-              veiculo.cambio,
-              veiculo.carroceria,
-              formatKm(veiculo.quilometragem),
-            ].filter(Boolean).map(tag => (
-              <span key={tag} className="sa-badge">{tag}</span>
-            ))}
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
+              {[
+                veiculo.cor,
+                veiculo.combustivel,
+                veiculo.cambio,
+                veiculo.carroceria,
+                formatKm(veiculo.quilometragem),
+              ].filter(Boolean).map(tag => (
+                <span key={tag} className="sa-badge">{tag}</span>
+              ))}
+            </div>
+            {(veiculo.tags ?? []).length > 0 && (
+              <TagsVeiculo
+                tags={veiculo.tags ?? []}
+                onChange={(tags: Tag[]) => onUpdate(veiculo.id, { tags })}
+                readOnly={false}
+              />
+            )}
           </div>
 
           {/* Values row */}
           <div
-            className="grid grid-cols-3 gap-4 p-4 rounded-xl"
+            className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-xl"
             style={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-subtle)' }}
           >
             <div>
@@ -345,6 +404,35 @@ export default function VeiculoModal({
                 onEditarGasto={(gastoId, dados) => onEditarGasto(veiculo.id, gastoId, dados)}
                 onRemoverGasto={(gastoId) => onRemoverGasto(veiculo.id, gastoId)}
               />
+            )}
+
+            {abaAtiva === 'depreciacao' && (
+              <DepreciacaoChart veiculo={veiculo} theme={theme} />
+            )}
+
+            {abaAtiva === 'roi' && (
+              <RoiCard
+                veiculo={veiculo}
+                onUpdate={(dados) => onUpdate(veiculo.id, dados)}
+              />
+            )}
+
+            {abaAtiva === 'proprietarios' && (
+              <ProprietariosTimeline
+                proprietarios={veiculo.proprietarios ?? []}
+                onChange={(lista: Proprietario[]) => onUpdate(veiculo.id, { proprietarios: lista })}
+              />
+            )}
+
+            {abaAtiva === 'seguro' && (
+              <SeguroCard
+                seguro={veiculo.seguro}
+                onChange={(seguro: Seguro | undefined) => onUpdate(veiculo.id, { seguro })}
+              />
+            )}
+
+            {abaAtiva === 'anuncios' && (
+              <AnunciosSimilares veiculo={veiculo} />
             )}
           </div>
 

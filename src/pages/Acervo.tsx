@@ -1,19 +1,22 @@
 import { useState, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Plus, Car, SlidersHorizontal, X } from 'lucide-react';
+import { Plus, Car, SlidersHorizontal, X, Download } from 'lucide-react';
 import type { Veiculo, TipoVeiculo } from '../types/veiculo';
 import VeiculoCard from '../components/Cards/VeiculoCard';
 import FiltrosAcervo, { type Filtros, filtrosVazios } from '../components/Filters/FiltrosAcervo';
+import { SkeletonGrid } from '../components/Layout/SkeletonCard';
+import { exportarCSV } from '../utils/exportCSV';
 
 interface Props {
   veiculos: Veiculo[];
   theme: 'dark' | 'light';
+  loading?: boolean;
   onSelectVeiculo: (v: Veiculo) => void;
   onToggleFavorito: (id: string) => void;
   onRemove: (v: Veiculo) => void;
 }
 
-export default function Acervo({ veiculos, theme, onSelectVeiculo, onToggleFavorito, onRemove }: Props) {
+export default function Acervo({ veiculos, theme, loading, onSelectVeiculo, onToggleFavorito, onRemove }: Props) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [showMobileFilters, setShowMobileFilters] = useState(false);
@@ -108,6 +111,10 @@ export default function Acervo({ veiculos, theme, onSelectVeiculo, onToggleFavor
           </button>
 
           {/* Add vehicle button */}
+          <button onClick={() => exportarCSV(filtrados, 'acervo_scolfaro')} className="sa-btn-ghost py-2" title="Exportar CSV">
+            <Download className="w-4 h-4" />
+            <span className="hidden sm:inline">CSV</span>
+          </button>
           <button onClick={() => navigate('/adicionar')} className="sa-btn-primary py-2">
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">Adicionar</span>
@@ -157,7 +164,9 @@ export default function Acervo({ veiculos, theme, onSelectVeiculo, onToggleFavor
 
         {/* ── GRID ── */}
         <div className="flex-1">
-          {filtrados.length > 0 ? (
+          {loading ? (
+            <SkeletonGrid count={6} />
+          ) : filtrados.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
               {filtrados.map((v, i) => (
                 <div key={v.id} className={`animate-fade-in-up stagger-${Math.min(i + 1, 12)}`}>

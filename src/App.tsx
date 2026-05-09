@@ -1,23 +1,82 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useTheme } from './hooks/useTheme';
 import { useVeiculos } from './hooks/useVeiculos';
-import type { Veiculo } from './types/veiculo';
+import type { Veiculo, Agendamento } from './types/veiculo';
 import Header from './components/Layout/Header';
 import Toast, { showToast } from './components/Layout/Toast';
 import VeiculoModal from './components/Modals/VeiculoModal';
 import ConfirmModal from './components/Modals/ConfirmModal';
+import ChatColecao from './components/Layout/ChatColecao';
 import Inicio from './pages/Inicio';
 import Acervo from './pages/Acervo';
 import Valores from './pages/Valores';
 import Adicionar from './pages/Adicionar';
 import Favoritos from './pages/Favoritos';
+import Comparar from './pages/Comparar';
+import Agenda from './pages/Agenda';
+import Showroom from './pages/Showroom';
+import PerfilPublico from './pages/PerfilPublico';
+import VeiculoPublico from './pages/VeiculoPublico';
+import { agendamentosDB } from './services/veiculosDB';
+import { supabaseDisponivel } from './lib/supabase';
+
+const AGENDA_KEY = 'scolfaro_agendamentos';
+
+function lsListarAgenda(): Agendamento[] {
+  try { return JSON.parse(localStorage.getItem(AGENDA_KEY) ?? '[]'); }
+  catch { return []; }
+}
+function lsSalvarAgenda(lista: Agendamento[]): void {
+  localStorage.setItem(AGENDA_KEY, JSON.stringify(lista));
+}
 
 export default function App() {
   const { theme, toggleTheme } = useTheme();
   const { veiculos, loading, erro, adicionar, atualizar, remover, toggleFavorito, atualizarValores, adicionarGasto, editarGasto, removerGasto } = useVeiculos();
   const [selectedVeiculo, setSelectedVeiculo] = useState<Veiculo | null>(null);
   const [veiculoToRemove, setVeiculoToRemove] = useState<Veiculo | null>(null);
+  const [agendamentos, setAgendamentos] = useState<Agendamento[]>(lsListarAgenda);
+
+  // Carregar agendamentos do Supabase na inicialização
+  useEffect(() => {
+    if (!supabaseDisponivel) return;
+    agendamentosDB.listar()
+      .then(lista => {
+        setAgendamentos(lista);
+        lsSalvarAgenda(lista); // sincroniza localStorage
+      })
+      .catch(() => {
+        // fallback: já carregou do localStorage no useState
+      });
+  }, []);
+
+  const salvarAgendamento = async (ag: Agendamento) => {
+    // Otimista: atualiza UI primeiro
+    setAgendamentos(prev => {
+      const existe = prev.find(a => a.id === ag.id);
+      const next = existe ? prev.map(a => a.id === ag.id ? ag : a) : [ag, ...prev];
+      lsSalvarAgenda(next);
+      return next;
+    });
+    // Persiste no Supabase
+    if (supabaseDisponivel) {
+      try { await agendamentosDB.salvar(ag); }
+      catch (e) { console.error('Erro ao salvar agendamento no Supabase:', e); }
+    }
+  };
+
+  const removerAgendamento = async (id: string) => {
+    setAgendamentos(prev => {
+      const next = prev.filter(a => a.id !== id);
+      lsSalvarAgenda(next);
+      return next;
+    });
+    if (supabaseDisponivel) {
+      try { await agendamentosDB.remover(id); }
+      catch (e) { console.error('Erro ao remover agendamento no Supabase:', e); }
+    }
+  };
 
   if (loading) {
     return (
@@ -72,6 +131,18 @@ export default function App() {
             <Route path="/valores" element={<Valores veiculos={veiculos} theme={theme} onAtualizarValores={atualizarValores} onUpdateVeiculo={atualizar} />} />
             <Route path="/adicionar" element={<Adicionar veiculos={veiculos} theme={theme} onAddVeiculo={handleAddVeiculo} />} />
             <Route path="/favoritos" element={<Favoritos veiculos={veiculos} theme={theme} onSelectVeiculo={setSelectedVeiculo} onToggleFavorito={toggleFavorito} onRemove={setVeiculoToRemove} />} />
+            <Route path="/comparar" element={<Comparar veiculos={veiculos} theme={theme} />} />
+            <Route path="/agenda" element={
+              <Agenda
+                veiculos={veiculos}
+                agendamentos={agendamentos}
+                onSalvarAgendamento={salvarAgendamento}
+                onRemoverAgendamento={removerAgendamento}
+              />
+            } />
+            <Route path="/showroom" element={<Showroom veiculos={veiculos} />} />
+            <Route path="/publico" element={<PerfilPublico veiculos={veiculos} />} />
+            <Route path="/veiculo/:id" element={<VeiculoPublico veiculos={veiculos} />} />
           </Routes>
         </main>
 
@@ -98,6 +169,7 @@ export default function App() {
           />
         )}
 
+        <ChatColecao veiculos={veiculos} />
         <Toast theme={theme} />
       </div>
     </BrowserRouter>

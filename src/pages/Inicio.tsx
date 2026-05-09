@@ -5,6 +5,8 @@ import type { Veiculo, TipoVeiculo } from '../types/veiculo';
 import { formatCurrency } from '../utils/formatters';
 import CategoriaCard, { categoriaLabels } from '../components/Cards/CategoriaCard';
 import VeiculoCard from '../components/Cards/VeiculoCard';
+import AlertasValor from '../components/Layout/AlertasValor';
+import TimelineColecao from '../components/Charts/TimelineColecao';
 
 interface Props {
   veiculos: Veiculo[];
@@ -37,7 +39,15 @@ export default function Inicio({ veiculos, theme, onSelectVeiculo }: Props) {
   const handleRemove = () => {};
 
   return (
+    <>
     <div className="max-w-7xl mx-auto px-4 sm:px-6">
+
+      {/* ── ALERTAS FIPE ─────────────────────────────────────── */}
+      {veiculos.length > 0 && (
+        <div className="pt-6">
+          <AlertasValor veiculos={veiculos} onSelectVeiculo={onSelectVeiculo} />
+        </div>
+      )}
 
       {/* ── HERO ─────────────────────────────────────────────── */}
       <section className="relative py-16 sm:py-20 overflow-hidden">
@@ -228,5 +238,16 @@ export default function Inicio({ veiculos, theme, onSelectVeiculo }: Props) {
         </section>
       )}
     </div>
+
+      {/* ── LINHA DO TEMPO ───────────────────────────────────── */}
+      {veiculos.length > 1 && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-16">
+          <h2 className="font-display font-bold text-xl mb-6" style={{ color: 'var(--text-primary)' }}>
+            Linha do Tempo
+          </h2>
+          <TimelineColecao veiculos={veiculos} onSelectVeiculo={onSelectVeiculo} />
+        </div>
+      )}
+    </>
   );
 }

@@ -18,9 +18,11 @@
     "deploy": "gh-pages -d dist --repo https://github.com/joaomari-oss/scolfaro-automobili.git"
   },
   "dependencies": {
+    "@react-pdf/renderer": "^4.5.1",
     "@supabase/supabase-js": "^2.103.0",
     "@tailwindcss/vite": "^4.2.2",
     "lucide-react": "^1.7.0",
+    "qrcode.react": "^4.2.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-is": "^19.2.4",

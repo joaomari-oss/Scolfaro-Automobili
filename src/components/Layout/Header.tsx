@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Sun, Moon, Search } from 'lucide-react';
+import { Sun, Moon, Search, X } from 'lucide-react';
 import type { Veiculo } from '../../types/veiculo';
 import BackendStatus from './BackendStatus';
 
@@ -15,13 +15,18 @@ export default function Header({ theme, toggleTheme, veiculos, onSelectVeiculo }
   const [busca, setBusca] = useState('');
   const [showResults, setShowResults] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const mobileSearchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
         setShowResults(false);
         setSearchFocused(false);
+      }
+      if (mobileSearchRef.current && !mobileSearchRef.current.contains(e.target as Node)) {
+        setMobileSearchOpen(false);
       }
     };
     document.addEventListener('mousedown', handler);
@@ -47,6 +52,9 @@ export default function Header({ theme, toggleTheme, veiculos, onSelectVeiculo }
     { to: '/valores', label: 'Valores' },
     { to: '/adicionar', label: 'Adicionar' },
     { to: '/favoritos', label: 'Favoritos' },
+    { to: '/comparar', label: 'Comparar' },
+    { to: '/agenda', label: 'Agenda' },
+    { to: '/showroom', label: 'Showroom' },
   ];
 
   return (
@@ -91,7 +99,17 @@ export default function Header({ theme, toggleTheme, veiculos, onSelectVeiculo }
           {/* Search + actions */}
           <div className="flex items-center gap-2 ml-auto">
 
-            {/* Search */}
+            {/* Mobile search toggle */}
+            <button
+              className="p-2 rounded-lg sm:hidden"
+              style={{ color: 'var(--text-muted)', backgroundColor: 'var(--bg-tertiary)' }}
+              onClick={() => setMobileSearchOpen(v => !v)}
+              aria-label="Buscar"
+            >
+              {mobileSearchOpen ? <X className="w-4 h-4" /> : <Search className="w-4 h-4" />}
+            </button>
+
+            {/* Search — desktop */}
             <div ref={searchRef} className="relative hidden sm:block">
               <Search
                 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
@@ -203,6 +221,53 @@ export default function Header({ theme, toggleTheme, veiculos, onSelectVeiculo }
             </NavLink>
           ))}
         </nav>
+
+        {/* Mobile search expanded */}
+        {mobileSearchOpen && (
+          <div ref={mobileSearchRef} className="pb-3 sm:hidden">
+            <div className="relative">
+              <Search
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
+                style={{ color: 'var(--text-muted)' }}
+              />
+              <input
+                autoFocus
+                type="text"
+                placeholder="Buscar veículo..."
+                value={busca}
+                onChange={e => { setBusca(e.target.value); setShowResults(true); }}
+                className="sa-input py-2 text-sm w-full"
+                style={{ paddingLeft: '36px', borderRadius: 'var(--radius-full)' }}
+              />
+            </div>
+            {showResults && busca.trim() && (
+              <div
+                className="mt-2 rounded-xl border overflow-hidden"
+                style={{ backgroundColor: 'var(--bg-elevated)', borderColor: 'var(--border-primary)' }}
+              >
+                {resultados.length > 0 ? resultados.map(v => (
+                  <button
+                    key={v.id}
+                    onClick={() => { onSelectVeiculo(v); setBusca(''); setShowResults(false); setMobileSearchOpen(false); }}
+                    className="w-full text-left px-4 py-3 flex items-center gap-3 border-b"
+                    style={{ borderColor: 'var(--border-subtle)' }}
+                  >
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                      style={{ backgroundColor: 'var(--accent-primary-muted)' }}>
+                      <span className="font-display font-bold text-xs" style={{ color: 'var(--accent-primary)' }}>{v.marca.slice(0, 1)}</span>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{v.modelo}</div>
+                      <div className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>{v.marca} · {v.ano} · {v.placa}</div>
+                    </div>
+                  </button>
+                )) : (
+                  <div className="px-4 py-4 text-center text-sm" style={{ color: 'var(--text-muted)' }}>Nenhum resultado</div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
     </header>

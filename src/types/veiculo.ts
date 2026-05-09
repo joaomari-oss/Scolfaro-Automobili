@@ -44,6 +44,49 @@ export interface HistoricoValor {
   fonte: string;
 }
 
+// ── B1: Agenda de Manutenção ──────────────────────────────────
+export type StatusAgendamento = 'pendente' | 'concluido' | 'atrasado';
+export interface Agendamento {
+  id: string;
+  veiculoId: string;
+  tipo: string;
+  descricao: string;
+  dataAgendada: string;
+  dataConcluido?: string;
+  status: StatusAgendamento;
+  custo?: number;
+  observacoes?: string;
+  createdAt: string;
+}
+
+// ── B3: Histórico de Proprietários ───────────────────────────
+export interface Proprietario {
+  id: string;
+  nome: string;
+  dataInicio: string;
+  dataFim?: string;
+  observacoes?: string;
+}
+
+// ── B4: Seguro ────────────────────────────────────────────────
+export interface Seguro {
+  id: string;
+  seguradora: string;
+  numeroApolice: string;
+  valorCobertura: number;
+  premio: number;
+  vigenciaInicio: string;
+  vigenciaFim: string;
+  observacoes?: string;
+}
+
+// ── C4: Tags personalizadas ───────────────────────────────────
+export interface Tag {
+  id: string;
+  nome: string;
+  cor: string;
+}
+
 export interface Veiculo {
   id: string;
   modelo: string;
@@ -66,6 +109,18 @@ export interface Veiculo {
   cambio: string;
   notas?: string;
   gastos: Gasto[];
+  // B3
+  proprietarios?: Proprietario[];
+  // B4
+  seguro?: Seguro;
+  // C4
+  tags?: Tag[];
+  // A3 – datas de compra/venda para ROI
+  dataCompra?: string;
+  precoCompra?: number;
+  dataVenda?: string;
+  precoVenda?: number;
 }
 
 export type VeiculoEditavel = Omit<Veiculo, 'id' | 'historicovalorizacao' | 'favorito' | 'ultimaAtualizacao'>;
+

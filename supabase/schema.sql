@@ -20,9 +20,26 @@ CREATE TABLE IF NOT EXISTS veiculos (
   cambio                TEXT,
   notas                 TEXT,
   gastos                JSONB DEFAULT '[]',
+  -- Novos campos (v2)
+  proprietarios         JSONB DEFAULT '[]',
+  seguro                JSONB,
+  tags                  JSONB DEFAULT '[]',
+  data_compra           DATE,
+  preco_compra          NUMERIC(15,2),
+  data_venda            DATE,
+  preco_venda           NUMERIC(15,2),
   created_at            TIMESTAMPTZ DEFAULT NOW(),
   updated_at            TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Migração: adicionar novas colunas se a tabela já existir
+ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS proprietarios  JSONB DEFAULT '[]';
+ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS seguro         JSONB;
+ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS tags           JSONB DEFAULT '[]';
+ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS data_compra    DATE;
+ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS preco_compra   NUMERIC(15,2);
+ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS data_venda     DATE;
+ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS preco_venda    NUMERIC(15,2);
 
 CREATE INDEX IF NOT EXISTS idx_veiculos_marca    ON veiculos(marca);
 CREATE INDEX IF NOT EXISTS idx_veiculos_tipo     ON veiculos(tipo);
@@ -44,3 +61,27 @@ CREATE POLICY "acesso_publico_select" ON veiculos FOR SELECT USING (true);
 CREATE POLICY "acesso_publico_insert" ON veiculos FOR INSERT WITH CHECK (true);
 CREATE POLICY "acesso_publico_update" ON veiculos FOR UPDATE USING (true);
 CREATE POLICY "acesso_publico_delete" ON veiculos FOR DELETE USING (true);
+
+-- ── AGENDAMENTOS ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS agendamentos (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  veiculo_id    UUID REFERENCES veiculos(id) ON DELETE CASCADE,
+  tipo          TEXT,
+  descricao     TEXT NOT NULL,
+  data_agendada DATE NOT NULL,
+  data_concluido DATE,
+  status        TEXT NOT NULL DEFAULT 'pendente',
+  custo         NUMERIC(12,2),
+  observacoes   TEXT,
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_agendamentos_veiculo ON agendamentos(veiculo_id);
+CREATE INDEX IF NOT EXISTS idx_agendamentos_status  ON agendamentos(status);
+CREATE INDEX IF NOT EXISTS idx_agendamentos_data    ON agendamentos(data_agendada);
+
+ALTER TABLE agendamentos ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "acesso_publico_select_ag" ON agendamentos FOR SELECT USING (true);
+CREATE POLICY "acesso_publico_insert_ag" ON agendamentos FOR INSERT WITH CHECK (true);
+CREATE POLICY "acesso_publico_update_ag" ON agendamentos FOR UPDATE USING (true);
+CREATE POLICY "acesso_publico_delete_ag" ON agendamentos FOR DELETE USING (true);

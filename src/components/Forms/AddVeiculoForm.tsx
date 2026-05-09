@@ -1,9 +1,11 @@
 import { useState, useRef } from 'react';
-import { Upload, X, Save, Camera } from 'lucide-react';
+import { Upload, X, Save, Camera, Search, Sparkles } from 'lucide-react';
 import type { Veiculo, TipoVeiculo, FichaTecnica } from '../../types/veiculo';
 import { generateId } from '../../utils/formatters';
 import { showToast } from '../Layout/Toast';
 import AIValueFetcher from '../vehicles/AIValueFetcher';
+import { buscarDadosPorPlaca } from '../../services/placaService';
+import { analisarFotoVeiculo } from '../../services/fotoAnaliseService';
 
 interface Props {
   theme: 'dark' | 'light';
@@ -41,6 +43,8 @@ const Field = ({ label, children, span2 = false }: { label: string; children: Re
 
 export default function AddVeiculoForm({ marcasExistentes, onSave }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [buscandoPlaca, setBuscandoPlaca] = useState(false);
+  const [analisandoFoto, setAnalisandoFoto] = useState(false);
 
   const [modelo,       setModelo]       = useState('');
   const [marca,        setMarca]        = useState('');
@@ -72,6 +76,55 @@ export default function AddVeiculoForm({ marcasExistentes, onSave }: Props) {
   const handlePlaca = (v: string) => {
     const cleaned = v.toUpperCase().replace(/[^A-Z0-9-]/g, '');
     setPlaca(cleaned.slice(0, 8));
+  };
+
+  const handleBuscarPlaca = async () => {
+    if (!placa.trim()) { showToast('error', 'Informe a placa primeiro.'); return; }
+    setBuscandoPlaca(true);
+    try {
+      const dados = await buscarDadosPorPlaca(placa);
+      if (dados) {
+        if (dados.marca) setMarca(dados.marca);
+        if (dados.modelo) setModelo(dados.modelo);
+        if (dados.ano) setAno(dados.ano);
+        if (dados.cor) setCor(dados.cor);
+        if (dados.combustivel) setCombustivel(dados.combustivel);
+        if (dados.motor) setMotor(dados.motor);
+        showToast('success', 'Dados da placa preenchidos automaticamente!');
+      } else {
+        showToast('error', 'N\u00e3o foi poss\u00edvel encontrar dados para esta placa.');
+      }
+    } catch {
+      showToast('error', 'Erro ao buscar placa.');
+    } finally {
+      setBuscandoPlaca(false);
+    }
+  };
+
+  const handleAnalisarFoto = async () => {
+    if (fotos.length === 0) { showToast('error', 'Adicione ao menos uma foto primeiro.'); return; }
+    setAnalisandoFoto(true);
+    try {
+      const base64 = fotos[0].split(',')[1] ?? fotos[0];
+      const dados = await analisarFotoVeiculo(base64);
+      if (dados) {
+        if (dados.marca) setMarca(dados.marca);
+        if (dados.modelo) setModelo(dados.modelo);
+        if (dados.cor) setCor(dados.cor);
+        if (dados.ano) setAno(dados.ano);
+        if (dados.tipo) {
+          const found = tiposOpcoes.find(t => t.label.toLowerCase().includes(dados.tipo!.toLowerCase()));
+          if (found) setTipo(found.value);
+        }
+        showToast('success', 'Foto analisada! Dados preenchidos.');
+      } else {
+        showToast('error', 'N\u00e3o foi poss\u00edvel identificar o ve\u00edculo na foto.');
+      }
+    } catch {
+      showToast('error', 'Erro ao analisar foto.');
+    } finally {
+      setAnalisandoFoto(false);
+    }
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -152,8 +205,20 @@ export default function AddVeiculoForm({ marcasExistentes, onSave }: Props) {
               placeholder="2024" className="sa-input" />
           </Field>
           <Field label="Placa">
-            <input type="text" value={placa} onChange={e => handlePlaca(e.target.value)}
-              placeholder="ABC-1234" className="sa-input font-data" />
+            <div className="flex gap-2">
+              <input type="text" value={placa} onChange={e => handlePlaca(e.target.value)}
+                placeholder="ABC-1234" className="sa-input font-data flex-1" />
+              <button
+                type="button"
+                onClick={handleBuscarPlaca}
+                disabled={buscandoPlaca}
+                className="sa-btn-ghost px-3 py-2 text-xs shrink-0"
+                title="Buscar dados pela placa via IA"
+              >
+                <Search className={`w-4 h-4 ${buscandoPlaca ? 'animate-spin' : ''}`} />
+                {buscandoPlaca ? '...' : 'Buscar'}
+              </button>
+            </div>
           </Field>
           <Field label="Cor">
             <input type="text" value={cor} onChange={e => setCor(e.target.value)}
@@ -269,6 +334,21 @@ export default function AddVeiculoForm({ marcasExistentes, onSave }: Props) {
             {fotos.length}/10
           </span>
         </SectionTitle>
+
+        {fotos.length > 0 && (
+          <div className="mb-4">
+            <button
+              type="button"
+              onClick={handleAnalisarFoto}
+              disabled={analisandoFoto}
+              className="sa-btn-ghost text-xs py-2 px-3"
+              title="Identificar veículo pela foto via Gemini"
+            >
+              <Sparkles className={`w-4 h-4 ${analisandoFoto ? 'animate-spin' : ''}`} />
+              {analisandoFoto ? 'Analisando...' : 'Analisar foto com IA'}
+            </button>
+          </div>
+        )}
 
         {fotos.length < 10 && (
           <div

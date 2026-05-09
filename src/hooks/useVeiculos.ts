@@ -32,6 +32,7 @@ export function useVeiculos() {
 
   useEffect(() => {
     if (!supabaseDisponivel) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setVeiculos(lsListar());
       setLoading(false);
       return;
@@ -51,9 +52,17 @@ export function useVeiculos() {
       setVeiculos(prev => { const next = [novo, ...prev]; lsSalvar(next); return next; });
       return novo;
     }
-    const novo = await veiculosDB.adicionar(v);
-    setVeiculos(prev => [novo, ...prev]);
-    return novo;
+    try {
+      const novo = await veiculosDB.adicionar(v);
+      setVeiculos(prev => [novo, ...prev]);
+      return novo;
+    } catch (err) {
+      // Supabase falhou: salva localmente para não perder o dado
+      console.error('Supabase erro ao adicionar, salvando localmente:', err);
+      const novo: Veiculo = { ...v, id: crypto.randomUUID() };
+      setVeiculos(prev => { const next = [novo, ...prev]; lsSalvar(next); return next; });
+      return novo;
+    }
   };
 
   const atualizar = async (id: string, dados: Partial<Veiculo>): Promise<Veiculo> => {

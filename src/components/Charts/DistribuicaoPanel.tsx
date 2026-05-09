@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import type { Veiculo } from '../../types/veiculo';
 import { formatCurrency } from '../../utils/formatters';
 
@@ -9,11 +8,7 @@ interface Props {
 
 export default function DistribuicaoPanel({ veiculos, colorMap }: Props) {
   const total = veiculos.reduce((s, v) => s + v.valorMercado, 0);
-
-  const sorted = useMemo(
-    () => [...veiculos].sort((a, b) => b.valorMercado - a.valorMercado),
-    [veiculos],
-  );
+  const sorted = [...veiculos].sort((a, b) => b.valorMercado - a.valorMercado);
 
   if (veiculos.length === 0) return null;
 

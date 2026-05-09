@@ -96,9 +96,16 @@ export default function App() {
     );
   }
 
-  const handleAddVeiculo = async (v: Veiculo) => {
-    const { id: _id, ...semId } = v;
-    await adicionar(semId);
+  const handleAddVeiculo = async (v: Veiculo): Promise<void> => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { id: _id, ...semId } = v;
+      await adicionar(semId);
+    } catch (err) {
+      console.error('Erro inesperado ao adicionar veículo:', err);
+      showToast('error', 'Erro ao salvar veículo. Tente novamente.');
+      throw err; // re-lança para o handleSave em Adicionar.tsx
+    }
   };
 
   const handleConfirmRemove = async () => {

@@ -91,9 +91,9 @@ export const buscarMercadoGemini = async (
       fonte: 'Gemini 2.5 Flash + Google Search',
     };
 
-  } catch (err: any) {
-    if (err.isRateLimit) throw err;
-    console.error('[Gemini] Erro:', err.message);
+  } catch (err) {
+    if ((err as { isRateLimit?: boolean }).isRateLimit) throw err;
+    console.error('[Gemini] Erro:', err instanceof Error ? err.message : String(err));
     return null;
   }
 };

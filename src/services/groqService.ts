@@ -62,8 +62,8 @@ export const buscarMercadoGroq = async (
       fonte: 'Groq compound-beta + Web Search',
     };
 
-  } catch (err: any) {
-    console.error('[Groq] Erro:', err.message);
+  } catch (err) {
+    console.error('[Groq] Erro:', err instanceof Error ? err.message : String(err));
     return null;
   }
 };

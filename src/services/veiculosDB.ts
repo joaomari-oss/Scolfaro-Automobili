@@ -6,6 +6,7 @@ function requireSupabase() {
 }
 
 // snake_case DB → camelCase TS
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const fromDB = (r: any): Veiculo => ({
   id: r.id, modelo: r.modelo, marca: r.marca, ano: r.ano,
   placa: r.placa ?? '', quilometragem: r.quilometragem ?? 0,
@@ -30,26 +31,30 @@ const fromDB = (r: any): Veiculo => ({
   precoVenda: r.preco_venda ? Number(r.preco_venda) : undefined,
 });
 
-// camelCase TS → snake_case DB
-const toDB = (v: Partial<Veiculo>) => ({
-  modelo: v.modelo, marca: v.marca, ano: v.ano, placa: v.placa,
-  quilometragem: v.quilometragem, tipo: v.tipo, carroceria: v.carroceria,
-  valor_mercado: v.valorMercado, valor_fipe: v.valorFipe,
-  codigo_fipe: v.codigoFipe, ficha_tecnica: v.fichatecnica,
-  fotos: v.fotos, favorito: v.favorito,
-  historico_valorizacao: v.historicovalorizacao,
-  ultima_atualizacao: v.ultimaAtualizacao,
-  cor: v.cor, combustivel: v.combustivel, cambio: v.cambio,
-  notas: v.notas, gastos: v.gastos,
-  // Novos campos
-  proprietarios: v.proprietarios,
-  seguro: v.seguro,
-  tags: v.tags,
-  data_compra: v.dataCompra,
-  preco_compra: v.precoCompra,
-  data_venda: v.dataVenda,
-  preco_venda: v.precoVenda,
-});
+// camelCase TS → snake_case DB  (undefined values omitted so inserts work with old schemas)
+const toDB = (v: Partial<Veiculo>): Record<string, unknown> => {
+  const raw: Record<string, unknown> = {
+    modelo: v.modelo, marca: v.marca, ano: v.ano, placa: v.placa,
+    quilometragem: v.quilometragem, tipo: v.tipo, carroceria: v.carroceria,
+    valor_mercado: v.valorMercado, valor_fipe: v.valorFipe,
+    codigo_fipe: v.codigoFipe, ficha_tecnica: v.fichatecnica,
+    fotos: v.fotos, favorito: v.favorito,
+    historico_valorizacao: v.historicovalorizacao,
+    ultima_atualizacao: v.ultimaAtualizacao,
+    cor: v.cor, combustivel: v.combustivel, cambio: v.cambio,
+    notas: v.notas, gastos: v.gastos,
+    // Novos campos — omitidos automaticamente quando undefined
+    proprietarios: v.proprietarios,
+    seguro: v.seguro,
+    tags: v.tags,
+    data_compra: v.dataCompra,
+    preco_compra: v.precoCompra,
+    data_venda: v.dataVenda,
+    preco_venda: v.precoVenda,
+  };
+  // Remove chaves undefined para não enviar colunas inexistentes ao Supabase
+  return Object.fromEntries(Object.entries(raw).filter(([, val]) => val !== undefined));
+};
 
 export const veiculosDB = {
   async listar(): Promise<Veiculo[]> {
@@ -91,6 +96,7 @@ export const veiculosDB = {
 
   async atualizarValores(
     id: string, valorFipe: number, valorMercado: number,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     historicoAtual: any[], codigoFipe?: string
   ): Promise<void> {
     requireSupabase();
@@ -116,6 +122,7 @@ export const veiculosDB = {
     let migrados = 0, erros = 0;
     for (const v of lista) {
       try {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { id: _id, ...semId } = v;
         await this.adicionar(semId);
         migrados++;
@@ -132,6 +139,7 @@ export const veiculosDB = {
 // ── AGENDAMENTOS DB ─────────────────────────────────────────────────────────
 
 const agendamentoDB = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   fromDB: (r: any): Agendamento => ({
     id: r.id,
     veiculoId: r.veiculo_id,

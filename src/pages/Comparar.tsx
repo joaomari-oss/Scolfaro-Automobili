@@ -27,7 +27,7 @@ function Celula({ value, winner }: { value: string; winner?: boolean }) {
   );
 }
 
-export default function Comparar({ veiculos, theme: _theme }: Props) {
+export default function Comparar({ veiculos }: Props) {
   const [selecionados, setSelecionados] = useState<string[]>([]);
   const [filtro, setFiltro] = useState('');
 

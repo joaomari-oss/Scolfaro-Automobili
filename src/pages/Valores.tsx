@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, type ReactNode } from 'react';
 import { RefreshCw, TrendingUp, DollarSign, BarChart2, ArrowUp, ArrowDown, X } from 'lucide-react';
 import type { Veiculo } from '../types/veiculo';
 import { formatCurrency, formatKm, formatDate } from '../utils/formatters';
@@ -23,7 +23,21 @@ interface Props {
 
 type SortKey = 'modelo' | 'ano' | 'km' | 'mercado' | 'fipe' | 'diffR' | 'diffP' | 'data';
 
-export default function Valores({ veiculos, theme, onAtualizarValores, onUpdateVeiculo: _onUpdateVeiculo }: Props) {
+function ChartWrapper({ title, children, height = 'h-72' }: { title: string; children: ReactNode; height?: string }) {
+  return (
+    <div
+      className="rounded-xl border p-6 animate-fade-in-up"
+      style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }}
+    >
+      <h2 className="font-display font-bold text-base mb-5" style={{ color: 'var(--text-primary)' }}>
+        {title}
+      </h2>
+      <div className={height}>{children}</div>
+    </div>
+  );
+}
+
+export default function Valores({ veiculos, theme, onAtualizarValores }: Props) {
 
   // ── Existing state ────────────────────────────────────────────────────────
   const [atualizando, setAtualizando] = useState(false);
@@ -51,6 +65,7 @@ export default function Valores({ veiculos, theme, onAtualizarValores, onUpdateV
     } else {
       ids = veiculos.slice(0, 5).map(v => v.id);
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedVehicleIds(ids);
     setSelectionReady(true);
   }, [veiculos, selectionReady]);
@@ -181,18 +196,6 @@ export default function Valores({ veiculos, theme, onAtualizarValores, onUpdateV
       ? <ArrowUp className="w-3 h-3 inline-block ml-1" />
       : <ArrowDown className="w-3 h-3 inline-block ml-1" />;
   };
-
-  const ChartWrapper = ({ title, children, height = 'h-72' }: { title: string; children: React.ReactNode; height?: string }) => (
-    <div
-      className="rounded-xl border p-6 animate-fade-in-up"
-      style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }}
-    >
-      <h2 className="font-display font-bold text-base mb-5" style={{ color: 'var(--text-primary)' }}>
-        {title}
-      </h2>
-      <div className={height}>{children}</div>
-    </div>
-  );
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">

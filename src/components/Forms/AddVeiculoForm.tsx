@@ -11,6 +11,7 @@ interface Props {
   theme: 'dark' | 'light';
   marcasExistentes: string[];
   onSave: (v: Veiculo) => void;
+  loading?: boolean;
 }
 
 const tiposOpcoes: { value: TipoVeiculo; label: string }[] = [
@@ -41,7 +42,7 @@ const Field = ({ label, children, span2 = false }: { label: string; children: Re
   </div>
 );
 
-export default function AddVeiculoForm({ marcasExistentes, onSave }: Props) {
+export default function AddVeiculoForm({ marcasExistentes, onSave, loading = false }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [buscandoPlaca, setBuscandoPlaca] = useState(false);
   const [analisandoFoto, setAnalisandoFoto] = useState(false);
@@ -419,9 +420,9 @@ export default function AddVeiculoForm({ marcasExistentes, onSave }: Props) {
 
       {/* Save */}
       <div className="pt-2 flex justify-end">
-        <button onClick={handleSave} className="sa-btn-primary px-10 py-3 text-base">
-          <Save className="w-5 h-5" />
-          Salvar Veículo
+        <button onClick={handleSave} disabled={loading} className="sa-btn-primary px-10 py-3 text-base disabled:opacity-60 disabled:cursor-not-allowed">
+          <Save className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+          {loading ? 'Salvando...' : 'Salvar Veículo'}
         </button>
       </div>
     </div>

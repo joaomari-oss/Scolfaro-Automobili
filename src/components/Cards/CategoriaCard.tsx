@@ -109,6 +109,7 @@ const labels: Record<TipoVeiculo, string> = {
   classico:   'Clássico',
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export { labels as categoriaLabels, silhouettes as categoriaSilhouettes };
 
 export default function CategoriaCard({ tipo, label, count, onClick, selected = false }: CategoriaCardProps) {

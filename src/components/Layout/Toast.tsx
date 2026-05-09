@@ -10,6 +10,7 @@ export interface ToastMessage {
 let toastId = 0;
 let addToastFn: ((msg: Omit<ToastMessage, 'id'>) => void) | null = null;
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function showToast(type: 'success' | 'error' | 'info', message: string) {
   addToastFn?.({ type, message });
 }
@@ -20,7 +21,8 @@ const typeConfig = {
   info:    { icon: Info,        color: 'var(--color-info)',    border: '#3B82F6' },
 };
 
-export default function Toast({ theme: _theme }: { theme: 'dark' | 'light' }) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export default function Toast(_props: { theme: 'dark' | 'light' }) {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   useEffect(() => {

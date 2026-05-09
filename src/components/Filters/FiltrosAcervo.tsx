@@ -1,6 +1,11 @@
 import { X } from 'lucide-react';
+import type { ReactNode } from 'react';
 import type { TipoVeiculo } from '../../types/veiculo';
 import { categoriaLabels, categoriaSilhouettes } from '../Cards/CategoriaCard';
+
+function SectionTitle({ children }: { children: ReactNode }) {
+  return <p className="sa-label uppercase tracking-widest text-[10px] mb-2.5">{children}</p>;
+}
 
 export interface Filtros {
   marcas: string[];
@@ -12,6 +17,7 @@ export interface Filtros {
   kmMax: number | null;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const filtrosVazios: Filtros = {
   marcas: [],
   tipos: [],
@@ -67,10 +73,6 @@ export default function FiltrosAcervo({ filtros, onChange, marcasDisponiveis }: 
     { label: 'Até 50k km', value: 50000 },
     { label: 'Até 100k km', value: 100000 },
   ];
-
-  const SectionTitle = ({ children }: { children: React.ReactNode }) => (
-    <p className="sa-label uppercase tracking-widest text-[10px] mb-2.5">{children}</p>
-  );
 
   return (
     <div className="space-y-6">

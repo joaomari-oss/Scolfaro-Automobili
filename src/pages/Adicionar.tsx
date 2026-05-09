@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import type { Veiculo } from '../types/veiculo';
@@ -7,17 +8,25 @@ import { showToast } from '../components/Layout/Toast';
 interface Props {
   veiculos: Veiculo[];
   theme: 'dark' | 'light';
-  onAddVeiculo: (v: Veiculo) => void;
+  onAddVeiculo: (v: Veiculo) => Promise<void>;
 }
 
 export default function Adicionar({ veiculos, theme, onAddVeiculo }: Props) {
   const navigate = useNavigate();
+  const [salvando, setSalvando] = useState(false);
   const marcasExistentes = [...new Set(veiculos.map(v => v.marca))].sort();
 
-  const handleSave = (v: Veiculo) => {
-    onAddVeiculo(v);
-    showToast('success', `${v.modelo} adicionado com sucesso!`);
-    navigate('/acervo');
+  const handleSave = async (v: Veiculo) => {
+    setSalvando(true);
+    try {
+      await onAddVeiculo(v);
+      showToast('success', `${v.modelo} adicionado com sucesso!`);
+      navigate('/acervo');
+    } catch {
+      showToast('error', 'Erro ao salvar veículo. Tente novamente.');
+    } finally {
+      setSalvando(false);
+    }
   };
 
   return (
@@ -58,6 +67,7 @@ export default function Adicionar({ veiculos, theme, onAddVeiculo }: Props) {
           theme={theme}
           marcasExistentes={marcasExistentes}
           onSave={handleSave}
+          loading={salvando}
         />
       </div>
     </div>

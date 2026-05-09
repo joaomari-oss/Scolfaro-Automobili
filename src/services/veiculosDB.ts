@@ -83,6 +83,7 @@ export const veiculosDB = {
 
   async remover(id: string): Promise<void> {
     requireSupabase();
+    if (!id || id.trim() === '') throw new Error('ID do veículo inválido');
     const { error } = await supabase.from('veiculos').delete().eq('id', id);
     if (error) throw new Error(error.message);
   },

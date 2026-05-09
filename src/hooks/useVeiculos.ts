@@ -5,6 +5,7 @@ import { atualizarValoresVeiculo } from './useIA';
 import type { Veiculo, Gasto } from '../types/veiculo';
 
 const LS_KEY = 'scolfaro_veiculos';
+const LS_MIGRATED_KEY = 'scolfaro_migrado_supabase';
 const SUPABASE_TIMEOUT_MS = 8_000;
 
 /** Rejeita se a promise não resolver dentro do prazo */
@@ -37,8 +38,41 @@ export function useVeiculos() {
       setLoading(false);
       return;
     }
+
+    const migrarLocalStorage = async (remoto: Veiculo[]) => {
+      const jasMigrado = localStorage.getItem(LS_MIGRATED_KEY);
+      if (jasMigrado) return remoto;
+      const local = lsListar();
+      if (local.length === 0) {
+        localStorage.setItem(LS_MIGRATED_KEY, '1');
+        return remoto;
+      }
+      // Migra veículos locais que não existem no Supabase (compara por placa ou modelo+ano)
+      const novos: Veiculo[] = [];
+      for (const v of local) {
+        const jáExiste = remoto.some(r =>
+          (v.placa && r.placa && v.placa === r.placa) ||
+          (r.modelo === v.modelo && r.ano === v.ano && r.marca === v.marca)
+        );
+        if (!jáExiste) {
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { id: _id, ...semId } = v;
+            const inserido = await veiculosDB.adicionar(semId);
+            novos.push(inserido);
+          } catch {
+            // falha silenciosa em migração individual
+          }
+        }
+      }
+      localStorage.setItem(LS_MIGRATED_KEY, '1');
+      localStorage.removeItem(LS_KEY); // limpa localStorage após migração
+      return [...novos, ...remoto];
+    };
+
     comTimeout(veiculosDB.listar(), SUPABASE_TIMEOUT_MS)
-      .then(setVeiculos)
+      .then(remoto => migrarLocalStorage(remoto))
+      .then(lista => setVeiculos(lista))
       .catch(e => {
         console.error('Supabase erro ao listar:', e);
         setVeiculos(lsListar());

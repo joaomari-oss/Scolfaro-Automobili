@@ -57,6 +57,10 @@ CREATE TRIGGER trigger_updated_at
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 ALTER TABLE veiculos ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "acesso_publico_select" ON veiculos;
+DROP POLICY IF EXISTS "acesso_publico_insert" ON veiculos;
+DROP POLICY IF EXISTS "acesso_publico_update" ON veiculos;
+DROP POLICY IF EXISTS "acesso_publico_delete" ON veiculos;
 CREATE POLICY "acesso_publico_select" ON veiculos FOR SELECT USING (true);
 CREATE POLICY "acesso_publico_insert" ON veiculos FOR INSERT WITH CHECK (true);
 CREATE POLICY "acesso_publico_update" ON veiculos FOR UPDATE USING (true);
@@ -81,6 +85,10 @@ CREATE INDEX IF NOT EXISTS idx_agendamentos_status  ON agendamentos(status);
 CREATE INDEX IF NOT EXISTS idx_agendamentos_data    ON agendamentos(data_agendada);
 
 ALTER TABLE agendamentos ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "acesso_publico_select_ag" ON agendamentos;
+DROP POLICY IF EXISTS "acesso_publico_insert_ag" ON agendamentos;
+DROP POLICY IF EXISTS "acesso_publico_update_ag" ON agendamentos;
+DROP POLICY IF EXISTS "acesso_publico_delete_ag" ON agendamentos;
 CREATE POLICY "acesso_publico_select_ag" ON agendamentos FOR SELECT USING (true);
 CREATE POLICY "acesso_publico_insert_ag" ON agendamentos FOR INSERT WITH CHECK (true);
 CREATE POLICY "acesso_publico_update_ag" ON agendamentos FOR UPDATE USING (true);

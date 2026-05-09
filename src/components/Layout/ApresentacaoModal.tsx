@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 
 interface Props {
@@ -54,25 +54,41 @@ const stack = [
 ];
 
 export default function ApresentacaoModal({ onClose }: Props) {
+  const [visible, setVisible] = useState(false);
+  const [closing, setClosing] = useState(false);
+
+  const handleClose = () => {
+    setClosing(true);
+    setTimeout(() => { setClosing(false); onClose(); }, 320);
+  };
+
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    // Monta com micro-delay para o browser aplicar o transition
+    const t = setTimeout(() => setVisible(true), 10);
+    return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') handleClose(); };
     document.addEventListener('keydown', handler);
     document.body.style.overflow = 'hidden';
     return () => {
       document.removeEventListener('keydown', handler);
       document.body.style.overflow = '';
     };
-  }, [onClose]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={e => { if (e.target === e.currentTarget) handleClose(); }}
       style={{
         position: 'fixed', inset: 0, zIndex: 9999,
-        backgroundColor: 'rgba(0,0,0,0.85)',
-        backdropFilter: 'blur(8px)',
+        backgroundColor: closing ? 'rgba(0,0,0,0)' : visible ? 'rgba(0,0,0,0.85)' : 'rgba(0,0,0,0)',
+        backdropFilter: visible && !closing ? 'blur(8px)' : 'blur(0px)',
         overflowY: 'auto',
         padding: 'clamp(0.5rem, 3vw, 2rem) clamp(0.5rem, 3vw, 1rem)',
+        transition: 'background-color 320ms ease, backdrop-filter 320ms ease',
       }}
     >
       <div
@@ -85,6 +101,9 @@ export default function ApresentacaoModal({ onClose }: Props) {
           overflow: 'hidden',
           boxShadow: '0 40px 120px rgba(0,0,0,0.6)',
           position: 'relative',
+          opacity: closing ? 0 : visible ? 1 : 0,
+          transform: closing ? 'scale(0.95) translateY(16px)' : visible ? 'scale(1) translateY(0)' : 'scale(0.95) translateY(24px)',
+          transition: 'opacity 320ms cubic-bezier(0.16,1,0.3,1), transform 320ms cubic-bezier(0.16,1,0.3,1)',
         }}
       >
         {/* Header */}
@@ -112,7 +131,10 @@ export default function ApresentacaoModal({ onClose }: Props) {
               padding: 8, borderRadius: 8, border: 'none', cursor: 'pointer', flexShrink: 0,
               backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-muted)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background-color 150ms ease',
             }}
+            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--bg-elevated)')}
+            onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)')}            
             aria-label="Fechar"
           >
             <X size={18} />
@@ -243,7 +265,7 @@ export default function ApresentacaoModal({ onClose }: Props) {
               Pronto para <span style={{ color: 'var(--accent-primary)' }}>rodar.</span>
             </h3>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 8,
                 backgroundColor: 'var(--accent-primary)', color: '#000',

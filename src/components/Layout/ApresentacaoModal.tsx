@@ -72,7 +72,7 @@ export default function ApresentacaoModal({ onClose }: Props) {
         backgroundColor: 'rgba(0,0,0,0.85)',
         backdropFilter: 'blur(8px)',
         overflowY: 'auto',
-        padding: '2rem 1rem',
+        padding: 'clamp(0.5rem, 3vw, 2rem) clamp(0.5rem, 3vw, 1rem)',
       }}
     >
       <div
@@ -91,27 +91,17 @@ export default function ApresentacaoModal({ onClose }: Props) {
         <div style={{
           background: 'linear-gradient(135deg, rgba(245,196,0,0.08) 0%, transparent 60%)',
           borderBottom: '1px solid var(--border-primary)',
-          padding: '2.5rem 2.5rem 2rem',
+          padding: 'clamp(1.25rem, 4vw, 2.5rem) clamp(1.25rem, 4vw, 2.5rem) clamp(1rem, 3vw, 2rem)',
           display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16,
         }}>
           <div>
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              background: 'rgba(245,196,0,0.08)', border: '1px solid rgba(245,196,0,0.25)',
-              borderRadius: 999, padding: '4px 14px',
-              fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
-              color: 'var(--accent-primary)', marginBottom: 16,
-            }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-primary)', display: 'inline-block' }} />
-              Plataforma entregue &amp; operacional
-            </div>
             <h1 style={{
-              fontFamily: 'var(--font-display)', fontSize: 'clamp(2rem, 5vw, 3rem)',
+              fontFamily: 'var(--font-display)', fontSize: 'clamp(1.75rem, 5vw, 3rem)',
               color: 'var(--text-primary)', lineHeight: 1.1, marginBottom: 8,
             }}>
               Scolfaro <span style={{ color: 'var(--accent-primary)' }}>Automobili</span>
             </h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: 15, maxWidth: 560 }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: 'clamp(13px, 2vw, 15px)', maxWidth: 560 }}>
               Plataforma digital completa para gestão e vitrine de acervos automotivos de alto padrão —
               20 funcionalidades, 10 páginas, build 100% limpo.
             </p>
@@ -131,7 +121,7 @@ export default function ApresentacaoModal({ onClose }: Props) {
 
         {/* Stats */}
         <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
+          display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)',
           borderBottom: '1px solid var(--border-primary)',
         }}>
           {[
@@ -139,10 +129,11 @@ export default function ApresentacaoModal({ onClose }: Props) {
             { val: '10', label: 'Páginas' },
             { val: '0', label: 'Erros TypeScript' },
             { val: '<1s', label: 'Tempo de Build' },
-          ].map(s => (
+          ].map((s, i) => (
             <div key={s.label} style={{
-              padding: '1.5rem', textAlign: 'center',
-              borderRight: '1px solid var(--border-subtle)',
+              padding: 'clamp(1rem, 3vw, 1.5rem)', textAlign: 'center',
+              borderRight: i % 2 === 0 ? '1px solid var(--border-subtle)' : 'none',
+              borderBottom: i < 2 ? '1px solid var(--border-subtle)' : 'none',
             }}>
               <div style={{
                 fontFamily: 'var(--font-display)', fontSize: '2rem',
@@ -155,7 +146,7 @@ export default function ApresentacaoModal({ onClose }: Props) {
           ))}
         </div>
 
-        <div style={{ padding: '2rem 2.5rem', display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+        <div style={{ padding: 'clamp(1rem, 4vw, 2rem) clamp(1.25rem, 4vw, 2.5rem)', display: 'flex', flexDirection: 'column', gap: 'clamp(1.5rem, 4vw, 2.5rem)' }}>
 
           {/* Features */}
           <div>
@@ -242,34 +233,29 @@ export default function ApresentacaoModal({ onClose }: Props) {
           <div style={{
             background: 'linear-gradient(135deg, rgba(245,196,0,0.06) 0%, transparent 100%)',
             border: '1px solid rgba(245,196,0,0.15)',
-            borderRadius: 12, padding: '2rem',
+            borderRadius: 12, padding: 'clamp(1.25rem, 4vw, 2rem)',
             textAlign: 'center',
           }}>
             <h3 style={{
-              fontFamily: 'var(--font-display)', fontSize: '1.5rem',
+              fontFamily: 'var(--font-display)', fontSize: 'clamp(1.1rem, 3vw, 1.5rem)',
               color: 'var(--text-primary)', marginBottom: 8,
             }}>
               Pronto para <span style={{ color: 'var(--accent-primary)' }}>rodar.</span>
             </h3>
-            <p style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 20 }}>
-              Plataforma completa, testada e disponível em produção.
-            </p>
-            <a
-              href="https://scolfaro-automobili.vercel.app/"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={onClose}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 8,
                 backgroundColor: 'var(--accent-primary)', color: '#000',
-                borderRadius: 8, padding: '10px 24px',
-                fontWeight: 700, fontSize: 14, textDecoration: 'none',
+                borderRadius: 8, padding: '10px 24px', border: 'none',
+                fontWeight: 700, fontSize: 14, cursor: 'pointer',
                 transition: 'opacity 0.2s',
               }}
               onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
               onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
             >
-              Acessar plataforma →
-            </a>
+              Voltar para a plataforma →
+            </button>
           </div>
 
         </div>

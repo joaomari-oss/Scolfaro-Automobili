@@ -1,12 +1,18 @@
 // src/hooks/useIA.ts
-// Chama o backend (Render) para obter valores via IA.
-// As chaves de API ficam no servidor — nunca no bundle do frontend.
+// Estratégia em cascata:
+// 1. Backend Render (se VITE_API_URL estiver configurado)
+// 2. Gemini 2.5 Flash direto do frontend (VITE_GEMINI_API_KEY)
+// 3. Groq compound-beta direto do frontend (VITE_GROQ_API_KEY)
+// 4. Estimativa local
 
 import type { Veiculo } from '../types/veiculo';
+import { buscarMercadoGemini } from '../services/geminiService';
+import { buscarMercadoGroq } from '../services/groqService';
+import { buscarValorFipe } from '../services/fipeService';
 
-// Em dev o proxy do Vite redireciona /api → localhost:3001.
-// Em produção VITE_API_URL deve apontar para o backend no Render.
-const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? '';
+const API_BASE     = (import.meta.env.VITE_API_URL     as string | undefined) ?? '';
+const GEMINI_KEY   = (import.meta.env.VITE_GEMINI_API_KEY as string | undefined) ?? '';
+const GROQ_KEY     = (import.meta.env.VITE_GROQ_API_KEY   as string | undefined) ?? '';
 
 // ─── Fallback local (quando o backend está totalmente indisponível) ───────────
 const BASE_POR_MARCA: Record<string, number> = {
@@ -43,46 +49,81 @@ export const atualizarValoresVeiculo = async (
 }> => {
   onProgress?.('Consultando IA para valores atualizados...');
 
-  try {
-    const res = await fetch(`${API_BASE}/api/ia/buscar-valores`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        marca:         veiculo.marca,
-        modelo:        veiculo.modelo,
-        ano:           veiculo.ano,
-        quilometragem: veiculo.quilometragem,
-        combustivel:   veiculo.combustivel,
-      }),
-    });
+  const input = {
+    marca: veiculo.marca, modelo: veiculo.modelo, ano: veiculo.ano,
+    quilometragem: veiculo.quilometragem, combustivel: veiculo.combustivel,
+    cambio: veiculo.cambio ?? '', cor: veiculo.cor ?? '', tipo: veiculo.tipo,
+  };
 
-    if (!res.ok) throw new Error(`Backend retornou ${res.status}`);
-
-    const data = await res.json() as {
-      valorMercado: number;
-      valorFipe: number;
-      observacao: string;
-      iaUsada?: 'gemini' | 'groq' | 'local';
-    };
-
-    console.info(`[IA] ✓ Valores recebidos do backend (fonte: ${data.iaUsada ?? 'desconhecida'})`);
-
-    return {
-      valorFipe:    data.valorFipe,
-      valorMercado: data.valorMercado,
-      iaUsada:      data.iaUsada === 'local' ? undefined : data.iaUsada,
-      erros:        [],
-    };
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.warn('[IA] Backend indisponível, usando estimativa local:', msg);
-
-    const estimativa = estimarLocalmente(veiculo);
-    return {
-      valorFipe:    estimativa.valorFipe,
-      valorMercado: estimativa.valorMercado,
-      iaUsada:      undefined,
-      erros:        [`Backend indisponível — valores estimados localmente`],
-    };
+  // ── 1. Backend Render (opcional) ─────────────────────────────────────────
+  if (API_BASE) {
+    try {
+      const res = await fetch(`${API_BASE}/api/ia/buscar-valores`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (res.ok) {
+        const data = await res.json() as { valorMercado: number; valorFipe: number; iaUsada?: string };
+        console.info(`[IA] ✓ Backend respondeu (fonte: ${data.iaUsada ?? 'desconhecida'})`);
+        return {
+          valorFipe: data.valorFipe, valorMercado: data.valorMercado,
+          iaUsada: data.iaUsada === 'local' ? undefined : data.iaUsada as 'gemini' | 'groq' | undefined,
+          erros: [],
+        };
+      }
+    } catch {
+      console.warn('[IA] Backend indisponível, tentando direto...');
+    }
   }
+
+  // ── 2. Gemini 2.5 Flash direto ──────────────────────────────────────────
+  if (GEMINI_KEY) {
+    try {
+      onProgress?.('Consultando Gemini 2.5 Flash...');
+      const result = await buscarMercadoGemini(input, GEMINI_KEY);
+      if (result) {
+        // Tenta FIPE direto também
+        let valorFipe: number | null = null;
+        let codigoFipe: string | undefined;
+        try {
+          const fipe = await buscarValorFipe({
+            marca: veiculo.marca, modelo: veiculo.modelo, ano: veiculo.ano,
+            combustivel: veiculo.combustivel, tipo: veiculo.tipo,
+          });
+          if (fipe) { valorFipe = fipe.valorFipe; codigoFipe = fipe.codigoFipe; }
+        } catch { /* FIPE opcional */ }
+        if (!valorFipe) valorFipe = Math.round(result.valorMercado * 0.95);
+        console.info('[IA] ✓ Gemini respondeu diretamente');
+        return { valorMercado: result.valorMercado, valorFipe, codigoFipe, iaUsada: 'gemini', erros: [] };
+      }
+    } catch (err) {
+      console.warn('[IA] Gemini falhou:', err instanceof Error ? err.message : err);
+    }
+  }
+
+  // ── 3. Groq compound-beta direto ─────────────────────────────────────────
+  if (GROQ_KEY) {
+    try {
+      onProgress?.('Consultando Groq...');
+      const result = await buscarMercadoGroq(input, GROQ_KEY);
+      if (result) {
+        const estimativa = estimarLocalmente(veiculo);
+        console.info('[IA] ✓ Groq respondeu diretamente');
+        return { valorMercado: result.valorMercado, valorFipe: estimativa.valorFipe, iaUsada: 'groq', erros: [] };
+      }
+    } catch (err) {
+      console.warn('[IA] Groq falhou:', err instanceof Error ? err.message : err);
+    }
+  }
+
+  // ── 4. Estimativa local ──────────────────────────────────────────────────
+  console.warn('[IA] Todas as fontes falharam — usando estimativa local');
+  const estimativa = estimarLocalmente(veiculo);
+  return {
+    valorFipe: estimativa.valorFipe, valorMercado: estimativa.valorMercado,
+    iaUsada: undefined,
+    erros: ['IAs indisponíveis — valores estimados localmente'],
+  };
 };

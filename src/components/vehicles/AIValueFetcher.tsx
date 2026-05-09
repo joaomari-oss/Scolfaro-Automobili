@@ -1,6 +1,11 @@
 import { useState } from 'react';
 import { showToast } from '../Layout/Toast';
 import { API_BASE } from '../../utils/api';
+import { buscarMercadoGemini } from '../../services/geminiService';
+import { buscarMercadoGroq } from '../../services/groqService';
+
+const GEMINI_KEY = (import.meta.env.VITE_GEMINI_API_KEY as string | undefined) ?? '';
+const GROQ_KEY   = (import.meta.env.VITE_GROQ_API_KEY   as string | undefined) ?? '';
 
 interface AIValueFetcherProps {
   marca: string;
@@ -42,28 +47,66 @@ export default function AIValueFetcher({
     if (!canFetch) return;
     setMarketStatus('loading');
     setMarketError('');
+
+    const input = {
+      marca, modelo, ano: anoNum,
+      quilometragem: Number(quilometragem) || 0,
+      combustivel: combustivel || 'Gasolina',
+    };
+
     try {
-      const res = await fetch(`${API_BASE}/api/ia/buscar-valores`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          marca,
-          modelo,
-          ano: anoNum,
-          quilometragem: Number(quilometragem) || 0,
-          combustivel: combustivel || 'Gasolina',
-        }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({})) as { error?: string };
-        throw new Error(err.error ?? `Erro ${res.status}`);
+      // 1. Backend
+      if (API_BASE) {
+        const res = await fetch(`${API_BASE}/api/ia/buscar-valores`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(input), signal: AbortSignal.timeout(10_000),
+        });
+        if (res.ok) {
+          const data = await res.json() as { valorMercado: number; valorFipe: number; observacao: string };
+          setMarketDetails(data);
+          setMarketStatus('success');
+          onMarketValueFound(data.valorMercado);
+          onFipeFound(data.valorFipe);
+          showToast('success', 'Valores preenchidos pela IA!');
+          return;
+        }
       }
-      const data = await res.json() as { valorMercado: number; valorFipe: number; observacao: string };
-      setMarketDetails(data);
-      setMarketStatus('success');
-      onMarketValueFound(data.valorMercado);
-      onFipeFound(data.valorFipe);
-      showToast('success', 'Valores preenchidos pela IA!');
+
+      // 2. Gemini direto
+      if (GEMINI_KEY) {
+        const result = await buscarMercadoGemini(
+          { ...input, cambio: '', cor: '', tipo: '' },
+          GEMINI_KEY
+        );
+        if (result) {
+          const fipe = Math.round(result.valorMercado * 0.95);
+          setMarketDetails({ valorMercado: result.valorMercado, valorFipe: fipe, observacao: result.observacao });
+          setMarketStatus('success');
+          onMarketValueFound(result.valorMercado);
+          onFipeFound(fipe);
+          showToast('success', 'Valores preenchidos pela IA (Gemini)!');
+          return;
+        }
+      }
+
+      // 3. Groq direto
+      if (GROQ_KEY) {
+        const result = await buscarMercadoGroq(
+          { ...input, cambio: '', cor: '', tipo: '' },
+          GROQ_KEY
+        );
+        if (result) {
+          const fipe = Math.round(result.valorMercado * 0.95);
+          setMarketDetails({ valorMercado: result.valorMercado, valorFipe: fipe, observacao: result.observacao });
+          setMarketStatus('success');
+          onMarketValueFound(result.valorMercado);
+          onFipeFound(fipe);
+          showToast('success', 'Valores preenchidos pela IA (Groq)!');
+          return;
+        }
+      }
+
+      throw new Error('Nenhuma fonte de IA disponível. Verifique as chaves de API.');
     } catch (err) {
       setMarketStatus('error');
       setMarketError(err instanceof Error ? err.message : String(err));

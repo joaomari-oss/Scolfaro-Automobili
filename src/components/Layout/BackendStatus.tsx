@@ -5,6 +5,7 @@ export default function BackendStatus() {
   const [status, setStatus] = useState<'checking' | 'online' | 'offline'>('checking');
 
   const check = async () => {
+    if (!API_BASE) { setStatus('offline'); return; }
     try {
       const res = await fetch(`${API_BASE}/api/health`, { signal: AbortSignal.timeout(3000) });
       const data = await res.json();
@@ -21,21 +22,18 @@ export default function BackendStatus() {
     return () => clearInterval(interval);
   }, []);
 
-  if (status === 'checking') return null;
-
-  const label = status === 'online' ? 'IA disponível' : 'Backend offline — IA indisponível';
+  // Só mostra quando o backend está online (indicador positivo, não alarme de erro)
+  if (status !== 'online') return null;
 
   return (
     <div
-      title={label}
-      aria-label={label}
+      title="Backend online"
+      aria-label="Backend online"
       style={{
         width: 8,
         height: 8,
         borderRadius: '50%',
-        background: status === 'online' ? 'var(--color-success)' : 'var(--color-danger)',
-        transition: 'background 500ms ease',
-        cursor: 'help',
+        background: 'var(--color-success)',
         flexShrink: 0,
       }}
     />

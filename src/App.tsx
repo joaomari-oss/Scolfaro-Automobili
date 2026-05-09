@@ -131,6 +131,7 @@ export default function App() {
           toggleTheme={toggleTheme}
           veiculos={veiculos}
           onSelectVeiculo={setSelectedVeiculo}
+          onOpenApresentacao={() => setShowApresentacao(true)}
         />
 
         <main>
@@ -180,42 +181,6 @@ export default function App() {
 
         <ChatColecao veiculos={veiculos} />
         <Toast theme={theme} />
-
-        {/* Botão flutuante — Apresentação do Projeto */}
-        <button
-          onClick={() => setShowApresentacao(true)}
-          title="Sobre a plataforma"
-          aria-label="Abrir apresentação do projeto"
-          style={{
-            position: 'fixed',
-            bottom: '5rem',
-            right: '1.25rem',
-            zIndex: 999,
-            width: 44,
-            height: 44,
-            borderRadius: '50%',
-            backgroundColor: 'var(--accent-primary)',
-            color: '#000',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 20,
-            boxShadow: '0 4px 20px rgba(245,196,0,0.4)',
-            transition: 'transform 0.2s, box-shadow 0.2s',
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.transform = 'scale(1.1)';
-            e.currentTarget.style.boxShadow = '0 8px 32px rgba(245,196,0,0.5)';
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.transform = 'scale(1)';
-            e.currentTarget.style.boxShadow = '0 4px 20px rgba(245,196,0,0.4)';
-          }}
-        >
-          ✦
-        </button>
 
         {showApresentacao && (
           <ApresentacaoModal onClose={() => setShowApresentacao(false)} />

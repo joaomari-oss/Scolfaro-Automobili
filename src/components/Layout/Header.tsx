@@ -9,9 +9,10 @@ interface HeaderProps {
   toggleTheme: () => void;
   veiculos: Veiculo[];
   onSelectVeiculo: (v: Veiculo) => void;
+  onOpenApresentacao: () => void;
 }
 
-export default function Header({ theme, toggleTheme, veiculos, onSelectVeiculo }: HeaderProps) {
+export default function Header({ theme, toggleTheme, veiculos, onSelectVeiculo, onOpenApresentacao }: HeaderProps) {
   const [busca, setBusca] = useState('');
   const [showResults, setShowResults] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
@@ -183,6 +184,34 @@ export default function Header({ theme, toggleTheme, veiculos, onSelectVeiculo }
                 </div>
               )}
             </div>
+
+            {/* Funcionalidades button */}
+            <button
+              onClick={onOpenApresentacao}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
+              style={{
+                backgroundColor: 'var(--accent-primary-muted)',
+                color: 'var(--accent-primary)',
+                border: '1px solid var(--accent-primary-border)',
+                transition: 'opacity 0.15s',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.opacity = '0.8')}
+              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+              title="Ver funcionalidades da plataforma"
+            >
+              <span style={{ fontSize: 13 }}>✦</span>
+              Funcionalidades
+            </button>
+            {/* Mobile — só ícone */}
+            <button
+              onClick={onOpenApresentacao}
+              className="flex sm:hidden p-2 rounded-lg"
+              style={{ backgroundColor: 'var(--accent-primary-muted)', color: 'var(--accent-primary)' }}
+              title="Ver funcionalidades"
+              aria-label="Funcionalidades"
+            >
+              <span style={{ fontSize: 14, lineHeight: 1 }}>✦</span>
+            </button>
 
             {/* Backend status indicator */}
             <BackendStatus />

@@ -560,66 +560,177 @@
 
     /* ── PRINT / PDF ── */
     @media print {
-      /* Página A4 sem margens — o padding é feito nas sections */
+      /* A4, sem margens — padding controlado pelas sections */
       @page { size: A4 portrait; margin: 0; }
 
-      /* Forçar impressão de fundos e cores exatas */
+      /* Forçar impressão fiel de fundos, gradients e cores */
       *, *::before, *::after {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         color-adjust: exact !important;
       }
 
-      /* Desabilitar animações e transições */
+      /* Sem animações */
       * { animation: none !important; transition: none !important; }
 
-      /* Manter tema escuro */
-      body { background: #060606 !important; color: #F8F8F8 !important; }
+      /* Tema escuro mantido */
+      body {
+        background: #060606 !important;
+        color: #F8F8F8 !important;
+        overflow: visible !important;
+      }
 
-      /* Remover textura de ruído (filtro SVG não renderiza em PDF) */
+      /* Remove textura de ruído (SVG filter) — não renderiza em PDF */
       body::before { display: none !important; }
 
-      /* Hero preenche exatamente a primeira página */
+      /* ── CONFIDENTIAL BAR ── */
+      .confidential-bar { position: static !important; }
+
+      /* ── HERO — cobre exatamente uma página A4 ── */
       .hero {
-        min-height: 100vh;
+        height: 100vh !important;
+        min-height: unset !important;
+        padding: 3rem 2.5rem !important;
         break-after: page;
         page-break-after: always;
       }
 
-      /* Seções com quebra de página obrigatória */
-      #s-features   { break-before: page; page-break-before: always; }
-      #s-pages       { break-before: page; page-break-before: always; }
-      #s-metricas    { break-before: page; page-break-before: always; }
-      .cta-section   { break-before: page; page-break-before: always; }
+      /* Hero title: reduz clamp que pode ultrapassar */
+      .hero-title { font-size: 5.5rem !important; }
 
-      /* Strip de quote sem quebra forçada — flui junto com páginas */
-      .highlight-strip { break-after: avoid; page-break-after: avoid; }
+      /* Hero meta: menos gap pra não esticar */
+      .hero-meta { gap: 2.5rem !important; margin-top: 0 !important; }
 
-      /* Evitar quebra de página no meio de cards/items */
-      .feature-card   { break-inside: avoid; page-break-inside: avoid; }
-      .page-item      { break-inside: avoid; page-break-inside: avoid; }
-      .metric-box     { break-inside: avoid; page-break-inside: avoid; }
-      .arch-layer     { break-inside: avoid; page-break-inside: avoid; }
-      .tech-pill      { break-inside: avoid; page-break-inside: avoid; }
+      .hero-stat-num { font-size: 2rem !important; }
 
-      /* Garantir que grids não quebrem cards no meio */
-      .features-grid  { break-inside: auto; }
-      .pages-list     { break-inside: auto; }
-      .metrics-grid   { break-inside: auto; }
+      /* Hero subtitle com menos margem */
+      .hero-subtitle { margin: 1rem auto 2rem !important; }
 
-      /* Padding compacto em print */
-      .section-inner { padding: 2.5rem 2rem !important; }
+      /* ── SECTIONS — padding compacto ── */
+      .section-inner {
+        padding: 2.5rem 2.5rem !important;
+        max-width: 100% !important;
+      }
 
-      /* Desativar hover transforms */
-      .feature-card:hover  { background: var(--bg-2) !important; }
-      .page-item:hover     { border-color: var(--bg-3) !important; transform: none !important; }
-      .tech-pill:hover     { border-color: var(--bg-4) !important; color: var(--text-1) !important; }
+      /* Visão geral: sem padding-bottom forçado */
+      .section-inner[style*="padding-bottom: 3rem"] {
+        padding-bottom: 2rem !important;
+      }
 
-      /* Footer no final */
-      footer { max-width: 100%; }
+      /* ── DIVIDER ── */
+      .gold-line { margin: 0 2.5rem !important; }
 
-      /* Confidential bar fixo no topo (não se repete) */
-      .confidential-bar { position: static !important; }
+      /* ── HIGHLIGHT STRIP — compacto ── */
+      .highlight-strip { padding: 2rem 2.5rem !important; }
+      .highlight-strip .quote { font-size: 1.3rem !important; }
+
+      /* ── FEATURES GRID — 3 colunas fixas ── */
+      .features-grid {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 1.5px !important;
+        margin-top: 2rem !important;
+      }
+
+      .feature-card {
+        padding: 1.25rem !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      .feature-icon {
+        width: 36px !important;
+        height: 36px !important;
+        margin-bottom: 0.75rem !important;
+        font-size: 1.1rem !important;
+      }
+
+      .feature-name { font-size: 0.9rem !important; margin-bottom: 0.3rem !important; }
+      .feature-desc { font-size: 0.8rem !important; }
+
+      /* ── PAGES LIST — 2 colunas ── */
+      .pages-list {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.75rem !important;
+        margin-top: 2rem !important;
+      }
+
+      .page-item {
+        padding: 1.1rem !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+        transform: none !important;
+      }
+
+      .page-num { font-size: 1.3rem !important; }
+      .page-info-name { font-size: 0.875rem !important; }
+      .page-info-desc { font-size: 0.75rem !important; }
+
+      /* ── METRICS GRID — 3 colunas ── */
+      .metrics-grid {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 1px !important;
+        margin-top: 2rem !important;
+      }
+
+      .metric-box {
+        padding: 1.75rem 1.5rem !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      .metric-val { font-size: 2.5rem !important; }
+
+      /* ── ARCH DIAGRAM — horizontal, sem wrap ── */
+      .arch-diagram {
+        flex-wrap: nowrap !important;
+        gap: 6px !important;
+        margin-top: 2rem !important;
+      }
+
+      .arch-layer {
+        min-width: 0 !important;
+        flex: 1 1 0 !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      .arch-layer-head { padding: 0.625rem 1rem !important; }
+      .arch-layer-items { padding: 1rem !important; gap: 0.45rem !important; }
+      .arch-item { font-size: 0.78rem !important; }
+
+      /* ── TECH PILLS ── */
+      .tech-row { margin-top: 1.5rem !important; }
+      .tech-pill { padding: 6px 12px !important; font-size: 0.8rem !important; }
+
+      /* ── CTA ── */
+      .cta-section {
+        padding: 4rem 2rem !important;
+      }
+
+      .cta-title { font-size: 3.5rem !important; }
+      .cta-sub { margin-bottom: 2rem !important; }
+
+      /* Não mostrar hover states no PDF */
+      .feature-card:hover { background: var(--bg-2) !important; }
+      .page-item:hover { border-color: var(--bg-3) !important; transform: none !important; }
+      .tech-pill:hover { border-color: var(--bg-4) !important; color: var(--text-1) !important; }
+
+      /* ── PAGE BREAKS — apenas hero; resto flui naturalmente ── */
+      /* Nenhum break-before forçado: o Chrome pagina automaticamente */
+      /* Só evitamos quebras DENTRO de elementos */
+      .feature-card, .page-item, .metric-box, .arch-layer, .tech-pill {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      /* Footer sempre ao fim */
+      footer {
+        max-width: 100% !important;
+        margin-top: 1rem !important;
+      }
     }
   </style>
 </head>

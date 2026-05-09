@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { showToast } from '../Layout/Toast';
-import { API_BASE } from '../../utils/api';
+import { API_BASE, backendDisponivel } from '../../utils/api';
 import { buscarMercadoGemini } from '../../services/geminiService';
 import { buscarMercadoGroq } from '../../services/groqService';
 import { buscarValorFipe } from '../../services/fipeService';
@@ -58,8 +58,8 @@ export default function AIValueFetcher({
     }, 60_000);
 
     try {
-      // 1. Backend — wrapped in own try/catch so network errors fall through
-      if (API_BASE) {
+      // 1. Backend — só chama se o health check passar (evita CORS no console)
+      if (API_BASE && await backendDisponivel()) {
         try {
           const res = await fetch(`${API_BASE}/api/ia/buscar-valores`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },

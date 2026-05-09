@@ -37,7 +37,7 @@ export const buscarMercadoGroq = async (
         model: GROQ_MODEL,
         messages: [{ role: 'user', content: montarPromptMercadoGroq(veiculo) }],
         temperature: 0.1,
-        max_tokens: 512,
+        max_tokens: 1024,
       }),
     });
 

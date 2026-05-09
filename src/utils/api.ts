@@ -8,3 +8,20 @@ export const API_BASE =
   rawApiUrl.startsWith('http://') && typeof location !== 'undefined' && location.protocol === 'https:'
     ? ''
     : rawApiUrl;
+
+/**
+ * Testa se o backend aceita CORS do domínio atual.
+ * Retorna false silenciosamente se bloqueado — sem jogar no console.
+ */
+export async function backendDisponivel(): Promise<boolean> {
+  if (!API_BASE) return false;
+  try {
+    const res = await fetch(`${API_BASE}/api/health`, {
+      signal: AbortSignal.timeout(5_000),
+    });
+    const data = await res.json().catch(() => ({}));
+    return (data as { status?: string }).status === 'ok';
+  } catch {
+    return false;
+  }
+}

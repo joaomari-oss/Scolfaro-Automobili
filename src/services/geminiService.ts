@@ -56,7 +56,7 @@ export const buscarMercadoGemini = async (
           tools: [{ googleSearch: {} }],
           generationConfig: {
             temperature: 0.1,
-            maxOutputTokens: 512,
+            maxOutputTokens: 1024,
           },
         }),
       }
@@ -69,7 +69,9 @@ export const buscarMercadoGemini = async (
     }
 
     const data = await response.json();
-    const text: string = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+    // Com googleSearch, o Gemini pode retornar multiplos parts — iterar todos
+    const parts: Array<{ text?: string }> = data.candidates?.[0]?.content?.parts ?? [];
+    const text: string = parts.map(p => p.text ?? '').join('');
     if (!text) throw new Error('Gemini retornou resposta vazia');
 
     const jsonMatch = text.match(/\{[\s\S]*\}/);

@@ -9,8 +9,8 @@ import type { Veiculo } from '../types/veiculo';
 import { buscarMercadoGemini } from '../services/geminiService';
 import { buscarMercadoGroq } from '../services/groqService';
 import { buscarValorFipe } from '../services/fipeService';
+import { API_BASE, backendDisponivel } from '../utils/api';
 
-const API_BASE     = (import.meta.env.VITE_API_URL     as string | undefined) ?? '';
 const GEMINI_KEY   = (import.meta.env.VITE_GEMINI_API_KEY as string | undefined) ?? '';
 const GROQ_KEY     = (import.meta.env.VITE_GROQ_API_KEY   as string | undefined) ?? '';
 
@@ -56,7 +56,7 @@ export const atualizarValoresVeiculo = async (
   };
 
   // ── 1. Backend Render (opcional) ─────────────────────────────────────────
-  if (API_BASE) {
+  if (API_BASE && await backendDisponivel()) {
     try {
       const res = await fetch(`${API_BASE}/api/ia/buscar-valores`, {
         method: 'POST',
